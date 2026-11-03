@@ -264,3 +264,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 .tool-side .seg, .side-card .seg { display: flex; flex-wrap: wrap; }
 .tool-side .seg button, .side-card .seg button { flex: 1; justify-content: center; white-space: normal; text-align: center; }
 .tool-side { min-width: 0; }
+.tabs a svg { flex: none; }
+@media (max-width: 760px) {
+  .draw-stage .stage-bottom .seg { order: 2; }
+  .draw-stage .stage-bottom .draw-btn { flex: 1 1 100%; order: 1; }
+  .draw-stage .stage-bottom .btn-ghost { order: 3; }
+  .timer-stage .stage-bottom .timer-go { flex: 1 1 auto; }
+}
