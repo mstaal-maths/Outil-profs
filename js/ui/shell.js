@@ -9,7 +9,7 @@ export const TOOLS = [
   { id: 'tirage', name: 'Tirage au sort', icon: 'dices', desc: 'Personne ne repasse avant que tout le monde soit passé.', phase: 1, key: '1' },
   { id: 'groupes', name: 'Groupes', icon: 'users', desc: 'Aléatoires, hétérogènes ou homogènes, avec vos contraintes.', phase: 1, key: '2' },
   { id: 'minuteur', name: 'Minuteur', icon: 'timer', desc: 'Lisible du fond de la classe, avec signal de fin.', phase: 1, key: '3' },
-  { id: 'plan', name: 'Plan de classe', icon: 'armchair', desc: 'Rangées, îlots ou U. Glissez, mélangez, imprimez.', phase: 1, key: '4' },
+  { id: 'plan', name: 'Plan de classe', icon: 'armchair', desc: 'Dessinez votre vraie salle, placez vos élèves, imprimez.', phase: 1, key: '4' },
   { id: 'qcm', name: 'QCM & quiz', icon: 'list-checks', desc: 'Imprimables, avec corrigé séparé.', phase: 2 },
   { id: 'mots', name: 'Mots croisés & mêlés', icon: 'grid-3x3', desc: 'Et textes à trous, en un instant.', phase: 2 },
   { id: 'flashcards', name: 'Flashcards', icon: 'layers', desc: 'Recto-verso parfaitement alignés.', phase: 2 },

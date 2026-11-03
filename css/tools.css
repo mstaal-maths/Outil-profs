@@ -313,3 +313,54 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   .sel-ring, .room-empty { display: none; }
 }
 .hit { fill: transparent; } .place .hit { pointer-events: none; }
+
+/* ---------- Plan de classe : premier écran & boîte à éléments ---------- */
+.room-start { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(24px, 5vw, 64px); align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); padding: clamp(22px, 4vw, 48px); box-shadow: var(--shadow); }
+.rs-art svg { width: 100%; height: auto; }
+.rs-floor { fill: var(--paper-2); stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 6 6; }
+.rs-board { fill: var(--ink); }
+:root[data-theme='dark'] .rs-board { fill: #3f6355; }
+.rs-desk { fill: var(--paper-3); stroke: var(--ink-3); }
+.rs-t rect { fill: var(--card); stroke: var(--encre); stroke-width: 1.5; }
+.rs-t { animation: rsDrop 3.6s var(--ease) infinite; transform-box: fill-box; }
+.rs-t2 { animation-delay: .25s; } .rs-t3 { animation-delay: .5s; } .rs-t4 { animation-delay: .75s; }
+@keyframes rsDrop { 0% { opacity: 0; transform: translate(60px, 30px); } 18%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.rs-hand path { fill: var(--marge); }
+.rs-hand { animation: rsHand 3.6s var(--ease) infinite; }
+@keyframes rsHand { 0% { transform: translate(0, 0); } 18% { transform: translate(-140px, -50px); } 30%, 100% { transform: translate(0, 0); } }
+.rs-copy h2 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); letter-spacing: -.03em; margin-top: 8px; }
+.rs-copy .sub { color: var(--ink-2); margin-top: 10px; font-size: 1.05rem; }
+.rs-steps { list-style: none; padding: 0; margin: 22px 0; display: grid; gap: 14px; }
+.rs-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.rs-steps b { display: block; }
+.rs-steps span:not(.rs-ico) { color: var(--ink-3); font-size: .92rem; }
+.rs-ico { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--encre-soft); color: var(--encre); }
+.rs-ico svg { width: 19px; height: 19px; }
+.rs-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.rs-form .field { flex: 1; min-width: 200px; }
+@media (max-width: 900px) { .room-start { grid-template-columns: 1fr; } .rs-art { max-width: 420px; } }
+
+.toolbox { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { display: grid; justify-items: center; gap: 4px; padding: 10px 4px 8px; border: 1.5px solid var(--line); border-radius: var(--r); background: var(--card-2); color: var(--ink-2); font-weight: 700; font-size: .76rem; line-height: 1.15; text-align: center; cursor: grab; touch-action: none; user-select: none; transition: border-color .2s, transform .2s var(--ease-spring), background .2s; }
+.tile:hover { border-color: var(--encre); background: var(--encre-softer); color: var(--ink); transform: translateY(-2px); }
+.tile:active { cursor: grabbing; }
+.tile svg { width: 48px; height: 32px; }
+.pc-t { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.2; }
+.pc-c { fill: var(--paper-3); stroke: var(--ink-3); stroke-width: .9; }
+.pc-b { fill: var(--ink); }
+:root[data-theme='dark'] .pc-b { fill: #5d7c6e; }
+.pc-d { fill: var(--paper-3); stroke: var(--ink-3); stroke-width: 1.2; }
+.pc-s { fill: none; stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+.pc-w { fill: var(--encre-soft); stroke: var(--encre); stroke-width: 1.2; }
+.tile-ghost { background: var(--card); border: 2px solid var(--encre); border-radius: 12px; display: grid; place-items: center; }
+.tile-ghost svg { width: 48px; height: 32px; }
+.room-wrap.drop-over { box-shadow: 0 0 0 3px var(--encre-soft); border-color: var(--encre); }
+.guides line { stroke: var(--encre); stroke-width: 1.2; stroke-dasharray: 5 5; opacity: .8; }
+.mini-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mini-steps li { display: flex; gap: 10px; align-items: center; font-weight: 600; font-size: .92rem; color: var(--ink-2); }
+.mini-steps li span { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--paper-3); font-size: .78rem; font-weight: 800; color: var(--ink-2); }
+.mini-steps li.ok { color: var(--ink); }
+.mini-steps li.ok span { background: var(--vert); color: #fff; }
+.walls { fill: none; stroke: var(--ink-2); stroke-width: 5; }
+:root[data-theme='dark'] .walls { stroke: #6f8279; }
+@media print { .walls { stroke: #000; } }

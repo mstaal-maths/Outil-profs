@@ -230,6 +230,11 @@ export function planViolations(tables, assign, constraints) {
 
 export function newPlan(name = 'Salle principale', kind = 'rangees', opts) {
   const tables = buildLayout(kind, opts || {});
+  if (kind === 'libre') {
+    // Salle vide aux dimensions réalistes (9 m × 7 m), murs réglables.
+    const room = { w: 900, h: 700 };
+    return { id: uid('p_'), name, kind, opts: {}, room, tables, items: [item('board', 0, 26), item('desk', room.w / 2 - 130, 110)], assign: {}, locked: [], view: 'eleves' };
+  }
   return { id: uid('p_'), name, kind, opts: opts || {}, tables, items: defaultItems(tables), assign: {}, locked: [], view: 'eleves' };
 }
 

@@ -2,7 +2,7 @@
 import { html, useState, useRef, useEffect, useMemo } from '../vendor/preact.js';
 import { Icon, Dialog, toggleFullscreen, useFullscreen, toast, confirmDialog, useProjection } from '../ui/core.js';
 import { updateClass } from '../lib/store.js';
-import { PRESETS, ITEM_TYPES, buildLayout, seatsOf, bounds, autoPlace, planViolations, newPlan, suggestOpts, capacity, table, item, defaultItems, SEAT_W, SEAT_H, GRID } from '../lib/room.js';
+import { ITEM_TYPES, seatsOf, bounds, autoPlace, planViolations, newPlan, table, item, defaultItems, SEAT_W, SEAT_H, GRID } from '../lib/room.js';
 import { levelMap, currentPeriod, hasGrades } from '../lib/model.js';
 import { fullName, plural, prefersReducedMotion } from '../lib/util.js';
 import { startDrag } from '../ui/dnd.js';
@@ -18,84 +18,71 @@ const STRATEGIES = [
 export function PlanTool({ cls }) {
   const plans = cls.plans || [];
   const plan = plans.find((p) => p.id === cls.activePlan) || plans[0];
-  const [creating, setCreating] = useState(false);
   if (!cls.students.length) return html`<div class="empty"><h3>Ajoutez d’abord vos élèves</h3><p>Le plan de classe se remplit avec les élèves de la classe.</p><a class="btn btn-primary" href=${`#/classes/${cls.id}`}>Ajouter des élèves</a></div>`;
-  if (!plan || creating) return html`<${RoomWizard} cls=${cls} onCancel=${plan ? () => setCreating(false) : null} onDone=${() => setCreating(false)}/>`;
-  return html`<${PlanEditor} cls=${cls} plan=${plan} onNewRoom=${() => setCreating(true)} key=${plan.id}/>`;
+  if (!plan) return html`<${RoomStart} cls=${cls}/>`;
+  return html`<${PlanEditor} cls=${cls} plan=${plan} onNewRoom=${() => createRoom(cls)} key=${plan.id}/>`;
 }
 
-// ---------- Assistant de création de salle ----------
-function RoomWizard({ cls, onCancel, onDone }) {
-  const n = cls.students.length;
-  const [kind, setKind] = useState('rangees');
-  const [opts, setOpts] = useState(suggestOpts('rangees', n));
-  const [name, setName] = useState(cls.plans?.length ? `Salle ${cls.plans.length + 1}` : 'Salle principale');
-  const tables = useMemo(() => buildLayout(kind, opts), [kind, opts]);
-  const cap = capacity(tables);
-  const pick = (k) => { setKind(k); setOpts(suggestOpts(k, n)); };
-  const knob = (key, label, min, max) => html`<div class="knob"><span>${label}</span><div class="stepper sm">
-    <button class="btn btn-icon btn-sm" onClick=${() => setOpts({ ...opts, [key]: Math.max(min, (opts[key] ?? min) - 1) })} aria-label=${label + ' : moins'}>−</button>
-    <output class="tnum">${opts[key]}</output>
-    <button class="btn btn-icon btn-sm" onClick=${() => setOpts({ ...opts, [key]: Math.min(max, (opts[key] ?? min) + 1) })} aria-label=${label + ' : plus'}>+</button></div></div>`;
-  const create = () => {
-    const p = newPlan(name.trim() || 'Salle', kind, opts);
-    p.tables = tables;
-    p.items = defaultItems(tables);
-    if (kind === 'libre') p.startArrange = true;
-    updateClass(cls.id, (c) => { c.plans = [...(c.plans || []), p]; c.activePlan = p.id; });
-    onDone();
-  };
-  return html`<div class="wizard route-enter">
-    <div class="wizard-head"><div><p class="eyebrow">Plan de classe</p><h2>Comment est organisée votre salle ?</h2><p class="sub">Choisissez un modèle : vous pourrez déplacer chaque table ensuite.</p></div>
-      ${onCancel && html`<button class="btn btn-ghost" onClick=${onCancel}>Annuler</button>`}</div>
-    <div class="preset-grid" role="radiogroup" aria-label="Modèle de salle">
-      ${Object.entries(PRESETS).map(([k, p]) => html`<button role="radio" aria-checked=${kind === k} class="preset" onClick=${() => pick(k)}>
-        <${RoomThumb} tables=${buildLayout(k, suggestOpts(k, n))}/><b>${p.label}</b><small>${p.desc}</small></button>`)}
+/** Nouvelle salle vide (avec seulement un tableau et un bureau, que l'on déplace à volonté). */
+function createRoom(cls, name) {
+  const p = newPlan((name || '').trim() || (cls.plans?.length ? `Salle ${cls.plans.length + 1}` : 'Ma salle'), 'libre');
+  p.startArrange = true;
+  updateClass(cls.id, (c) => { c.plans = [...(c.plans || []), p]; c.activePlan = p.id; });
+}
+
+// ---------- Premier écran : dessiner sa salle ----------
+function RoomStart({ cls }) {
+  const [name, setName] = useState('');
+  const steps = [
+    ['presentation', 'Placez le tableau et votre bureau', 'Ils sont déjà là : faites-les glisser au bon endroit.'],
+    ['armchair', 'Ajoutez vos tables', 'Glissez-les depuis la boîte à éléments, comme dans votre vraie salle.'],
+    ['users', 'Installez vos élèves', 'À la main ou automatiquement, en respectant vos contraintes.'],
+  ];
+  return html`<div class="room-start route-enter">
+    <div class="rs-art" aria-hidden="true">
+      <svg viewBox="0 0 360 240">
+        <rect x="10" y="10" width="340" height="220" rx="18" class="rs-floor"/>
+        <rect x="110" y="26" width="140" height="10" rx="5" class="rs-board"/>
+        <rect x="270" y="50" width="56" height="28" rx="6" class="rs-desk"/>
+        <g class="rs-t rs-t1"><rect x="48" y="104" width="70" height="30" rx="7"/></g>
+        <g class="rs-t rs-t2"><rect x="146" y="104" width="70" height="30" rx="7"/></g>
+        <g class="rs-t rs-t3"><rect x="48" y="164" width="70" height="30" rx="7"/></g>
+        <g class="rs-t rs-t4"><rect x="146" y="164" width="70" height="30" rx="7"/></g>
+        <g class="rs-hand"><path d="M262 172l10 30 6-12 13 12 6-6-13-12 12-5z"/></g>
+      </svg>
     </div>
-    <div class="wizard-body">
-      <div class="wizard-preview card"><${RoomThumb} tables=${tables} big=${true}/></div>
-      <div class="card side-card wizard-opts">
-        <div class="field"><label for="rname">Nom de la salle</label><input id="rname" class="input" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="Ex. B12"/></div>
-        ${kind === 'rangees' && html`${knob('rows', 'Rangées', 1, 10)}${knob('perRow', 'Tables par rangée', 1, 6)}${knob('seats', 'Places par table', 1, 4)}`}
-        ${kind === 'ilots' && html`${knob('islands', 'Îlots', 1, 12)}${knob('perLine', 'Îlots par ligne', 1, 5)}
-          <div class="knob"><span>Taille d’un îlot</span><div class="seg"><button aria-pressed=${opts.islandSize === 4} onClick=${() => setOpts({ ...opts, islandSize: 4 })}>4</button><button aria-pressed=${opts.islandSize === 6} onClick=${() => setOpts({ ...opts, islandSize: 6 })}>6</button></div></div>`}
-        ${kind === 'u' && html`${knob('side', 'Places sur chaque côté', 2, 10)}${knob('back', 'Places au fond', 1, 10)}
-          <label class="switch"><input type="checkbox" checked=${!!opts.inner} onChange=${(e) => setOpts({ ...opts, inner: e.target.checked })}/>Rangée au centre</label>`}
-        ${kind === 'examen' && html`${knob('rows', 'Rangées', 1, 10)}${knob('perRow', 'Tables par rangée', 1, 8)}`}
-        ${kind === 'libre' && html`<p class="hint">Vous arriverez sur une salle vide avec un tableau et un bureau. Ajoutez ensuite vos tables, chaises, porte, fenêtres… et placez-les exactement comme chez vous.</p>`}
-        ${kind !== 'libre' && html`<div class=${`cap ${cap < n ? 'short' : ''}`}><b class="tnum">${cap}</b> places pour <b class="tnum">${n}</b> élèves${cap < n ? html` — <span>il manque ${n - cap} places</span>` : ''}</div>`}
-        <button class="btn btn-primary btn-lg btn-block" onClick=${create}><${Icon} name="check"/>Créer cette salle</button>
-      </div>
+    <div class="rs-copy">
+      <p class="eyebrow">Plan de classe · ${cls.name}</p>
+      <h2>Dessinez votre salle de classe</h2>
+      <p class="sub">Reproduisez votre vraie salle, telle qu’elle est : vos élèves verront exactement où ils sont assis.</p>
+      <ol class="rs-steps">${steps.map(([ic, t, d]) => html`<li><span class="rs-ico"><${Icon} name=${ic}/></span><div><b>${t}</b><span>${d}</span></div></li>`)}</ol>
+      <form class="rs-form" onSubmit=${(e) => { e.preventDefault(); createRoom(cls, name); }}>
+        <div class="field"><label for="rsname">Nom de la salle <span class="muted">(facultatif)</span></label>
+          <input id="rsname" class="input" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="Ex. B12, labo, salle info…" maxlength="40"/></div>
+        <button class="btn btn-primary btn-lg" type="submit"><${Icon} name="pencil"/>Commencer à dessiner</button>
+      </form>
     </div>
   </div>`;
 }
 
-function RoomThumb({ tables, big }) {
-  if (!tables.length) return html`<svg class=${`thumb ${big ? 'big' : ''}`} viewBox="-300 0 600 420" aria-hidden="true">
-    <rect x="-90" y="30" width="180" height="12" rx="6" class="th-board"/>
-    <rect x="-250" y="70" width="500" height="320" rx="18" class="th-empty"/>
-    <path d="M-20 230h40M0 210v40" class="th-plus"/></svg>`;
-  const b = bounds(tables);
-  const pad = 40;
-  const vb = `${b.x - pad} ${Math.min(b.y, 40) - pad} ${b.w + pad * 2} ${b.y + b.h - Math.min(b.y, 40) + pad * 2}`;
-  return html`<svg class=${`thumb ${big ? 'big' : ''}`} viewBox=${vb} aria-hidden="true">
-    <rect x=${-90} y=${30} width="180" height="12" rx="6" class="th-board"/>
-    ${tables.map((t) => html`<g transform=${`translate(${t.x} ${t.y}) rotate(${t.rot})`}><rect x=${(-t.cols * SEAT_W) / 2 + 3} y=${(-t.rows * SEAT_H) / 2 + 3} width=${t.cols * SEAT_W - 6} height=${t.rows * SEAT_H - 6} rx="8" class="th-table"/>
-      ${Array.from({ length: t.cols * t.rows }, (_, i) => html`<circle cx=${(-t.cols * SEAT_W) / 2 + SEAT_W / 2 + (i % t.cols) * SEAT_W} cy=${(-t.rows * SEAT_H) / 2 + SEAT_H / 2 + Math.floor(i / t.cols) * SEAT_H} r="9" class="th-seat"/>`)}</g>`)}
-  </svg>`;
-}
-
 // ---------- Éditeur ----------
+const pt = (body) => html`<svg viewBox="0 0 48 32" aria-hidden="true">${body}</svg>`;
+const pTable = (cols, rows) => {
+  const w = cols * 12, h = rows * 10, x = 24 - w / 2, y = 16 - h / 2;
+  return pt(html`<rect x=${x} y=${y} width=${w} height=${h} rx="2.5" class="pc-t"/>${Array.from({ length: cols * rows }, (_, i) => { const r = Math.floor(i / cols); const cy = rows === 2 && r === 0 ? y - 4 : y + h + 1.5; return html`<rect x=${x + (i % cols) * 12 + 3} y=${cy} width="6" height="2.5" rx="1" class="pc-c"/>`; })}`);
+};
 const ADDABLE = [
-  { k: 't2', label: 'Table de 2', icon: 'plus', make: (x, y) => table(x, y, 2, 1) },
-  { k: 't1', label: 'Table de 1', icon: 'plus', make: (x, y) => table(x, y, 1, 1) },
-  { k: 't4', label: 'Îlot de 4', icon: 'plus', make: (x, y) => table(x, y, 2, 2) },
-  { k: 'chair', label: 'Chaise seule', icon: 'armchair', make: (x, y) => ({ ...table(x, y, 1, 1), bare: true }) },
-  { k: 'board', label: 'Tableau', icon: 'presentation', item: true },
-  { k: 'desk', label: 'Bureau', icon: 'graduation-cap', item: true },
-  { k: 'door', label: 'Porte', icon: 'door-open', item: true },
-  { k: 'window', label: 'Fenêtre', icon: 'sun', item: true },
-  { k: 'cabinet', label: 'Armoire', icon: 'layers', item: true },
+  { k: 't1', label: 'Table 1 place', pic: pTable(1, 1), make: (x, y) => table(x, y, 1, 1) },
+  { k: 't2', label: 'Table 2 places', pic: pTable(2, 1), make: (x, y) => table(x, y, 2, 1) },
+  { k: 't3', label: 'Table 3 places', pic: pTable(3, 1), make: (x, y) => table(x, y, 3, 1) },
+  { k: 'i4', label: 'Îlot de 4', pic: pTable(2, 2), make: (x, y) => table(x, y, 2, 2) },
+  { k: 'i6', label: 'Îlot de 6', pic: pTable(3, 2), make: (x, y) => table(x, y, 3, 2) },
+  { k: 'chair', label: 'Chaise seule', pic: pt(html`<rect x="17" y="9" width="14" height="14" rx="4" class="pc-c"/>`), make: (x, y) => ({ ...table(x, y, 1, 1), bare: true }) },
+  { k: 'board', label: 'Tableau', item: true, pic: pt(html`<rect x="4" y="13" width="40" height="6" rx="3" class="pc-b"/>`) },
+  { k: 'desk', label: 'Bureau', item: true, pic: pt(html`<rect x="12" y="8" width="24" height="13" rx="2.5" class="pc-d"/><rect x="20" y="23" width="8" height="3" rx="1" class="pc-c"/>`) },
+  { k: 'door', label: 'Porte', item: true, pic: pt(html`<rect x="10" y="7" width="22" height="3" class="pc-d"/><path d="M10 10a22 22 0 0 0 22 16M10 10v16" class="pc-s"/>`) },
+  { k: 'window', label: 'Fenêtre', item: true, pic: pt(html`<rect x="6" y="14" width="36" height="4" class="pc-w"/>`) },
+  { k: 'cabinet', label: 'Armoire', item: true, pic: pt(html`<rect x="12" y="9" width="24" height="14" rx="1.5" class="pc-d"/><line x1="24" y1="9" x2="24" y2="23" class="pc-s"/>`) },
 ];
 const upright = (a) => { a = ((a % 360) + 360) % 360; return a > 90 && a <= 270 ? a - 180 : a; };
 
@@ -114,6 +101,7 @@ function PlanEditor({ cls, plan, onNewRoom }) {
   const [shuffling, setShuffling] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [, setUndoN] = useState(0);
+  const [guides, setGuides] = useState(null); // lignes d'alignement pendant un déplacement
 
   useEffect(() => { if (plan.startArrange) updateClass(cls.id, (c) => { delete c.plans.find((x) => x.id === plan.id).startArrange; }); }, []);
 
@@ -130,8 +118,10 @@ function PlanEditor({ cls, plan, onNewRoom }) {
   const locked = new Set((plan.locked || []).filter((seat) => assign[seat]));
 
   // Repère d'affichage (vue du bureau = salle pivotée de 180°, texte toujours droit).
-  const b = bounds(tables, items);
-  const pad = 60;
+  const room = plan.room; // murs de la salle (plans récents)
+  const b0 = bounds(tables, items);
+  const b = room ? (() => { const x0 = Math.min(b0.x, -room.w / 2), y0 = Math.min(b0.y, 0), x1 = Math.max(b0.x + b0.w, room.w / 2), y1 = Math.max(b0.y + b0.h, room.h); return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; })() : b0;
+  const pad = room ? 30 : 60;
   let left = b.x - pad, right = b.x + b.w + pad, top = b.y - pad, bottom = b.y + b.h + pad;
   if (right - left < 640) { const c = (left + right) / 2; left = c - 320; right = c + 320; }
   if (bottom - top < 420) { const c = (top + bottom) / 2; top = c - 210; bottom = c + 210; }
@@ -214,12 +204,21 @@ function PlanEditor({ cls, plan, onNewRoom }) {
       let dx = pt.x - start.x, dy = pt.y - start.y;
       if (flipped) { dx = -dx; dy = -dy; }
       if (Math.hypot(dx, dy) > 2) moved = true;
-      const nx = Math.round((el.x + dx) / GRID) * GRID, ny = Math.round((el.y + dy) / GRID) * GRID;
+      let nx = Math.round((el.x + dx) / GRID) * GRID, ny = Math.round((el.y + dy) / GRID) * GRID;
+      // Aimantation : s'aligne sur les tables et éléments voisins.
+      const others = [...orig.tables, ...orig.items].filter((o) => o.id !== el.id);
+      let gx = null, gy = null;
+      for (const o of others) {
+        if (gx == null && Math.abs(o.x - (el.x + dx)) < 14) { nx = o.x; gx = o.x; }
+        if (gy == null && Math.abs(o.y - (el.y + dy)) < 14) { ny = o.y; gy = o.y; }
+      }
+      setGuides(gx != null || gy != null ? { x: gx, y: gy } : null);
       const key = kind === 'table' ? 'tables' : 'items';
       setLive({ ...orig, [key]: orig[key].map((x) => (x.id === el.id ? { ...x, x: nx, y: ny } : x)) });
     };
     const up = () => {
       window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up);
+      setGuides(null);
       setLive((cur) => { if (cur && moved) save((p) => { p.tables = cur.tables; p.items = cur.items; }); return null; });
     };
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
@@ -241,6 +240,18 @@ function PlanEditor({ cls, plan, onNewRoom }) {
     if (selT) { const nt = { ...table(selT.x + 32, selT.y + 32, selT.cols, selT.rows, selT.rot), bare: selT.bare }; save((p) => { p.tables.push(nt); }); setSel({ kind: 'table', id: nt.id }); }
     else if (selI) { const ni = item(selI.type, selI.x + 32, selI.y + 32, selI.rot, selI.w, selI.h); save((p) => { p.items.push(ni); }); setSel({ kind: 'item', id: ni.id }); }
   };
+  /** Copie l'élément sélectionné juste à côté : idéal pour construire une rangée. */
+  const copyBeside = (dir) => {
+    const el = selT || selI;
+    if (!el) return;
+    const turned = Math.round(el.rot / 90) % 2 === 1;
+    let w = selT ? selT.cols * SEAT_W : selI.w, h = selT ? selT.rows * SEAT_H + 18 : selI.h;
+    if (turned) [w, h] = [h, w];
+    const x = dir === 'right' ? el.x + w + (selT ? 24 : 12) : el.x;
+    const y = dir === 'below' ? el.y + h + (selT ? 34 : 12) : el.y;
+    if (selT) { const nt = { ...table(x, y, selT.cols, selT.rows, selT.rot), bare: selT.bare }; save((p) => { p.tables.push(nt); }); setSel({ kind: 'table', id: nt.id }); }
+    else { const ni = item(selI.type, x, y, selI.rot, selI.w, selI.h); save((p) => { p.items.push(ni); }); setSel({ kind: 'item', id: ni.id }); }
+  };
   const resizeTable = (dc) => edit((t, p) => {
     const nc = Math.max(1, Math.min(6, t.cols + dc));
     if (nc < t.cols) for (const k of Object.keys(p.assign)) { const [tid, i] = k.split(':'); if (tid === t.id && Number(i) % t.cols >= nc) delete p.assign[k]; }
@@ -254,13 +265,53 @@ function PlanEditor({ cls, plan, onNewRoom }) {
     if (r < t.rows) for (const k of Object.keys(p.assign)) { const [tid, i] = k.split(':'); if (tid === t.id && Math.floor(i / t.cols) >= r) delete p.assign[k]; }
     t.rows = r; t.bare = false;
   });
-  const addThing = (a) => {
-    // Nouvel élément posé dans l'espace libre sous la salle, décalé pour ne pas s'empiler.
+  const addThing = (a, at) => {
+    // Posé là où on l'a lâché ; sinon dans l'espace libre sous la salle, décalé pour ne pas s'empiler.
     const n = history.current.length % 5;
-    const cx = Math.round((b.x + b.w / 2 + (n - 2) * 40) / GRID) * GRID;
-    const cy = Math.round((b.y + b.h + 70) / GRID) * GRID;
+    let cx = Math.round((b.x + b.w / 2 + (n - 2) * 40) / GRID) * GRID;
+    let cy = Math.round((b.y + b.h + 70) / GRID) * GRID;
+    if (room && !at) {
+      // Cherche une place libre dans la salle, du centre vers les bords.
+      const w = a.item ? ITEM_TYPES[a.k].w : (a.k === 't3' || a.k === 'i6' ? 3 : a.k === 't1' || a.k === 'chair' ? 1 : 2) * SEAT_W;
+      const h = a.item ? (a.k === 'door' ? ITEM_TYPES.door.w * 2 : ITEM_TYPES[a.k].h) : (a.k.startsWith('i') ? 2 : 1) * SEAT_H + 20;
+      const boxes = [...tables.map((t) => { const q = bounds([t]); return q; }), ...items.map((i) => bounds([], [i]))];
+      const free = (x, y) => x - w / 2 > -room.w / 2 && x + w / 2 < room.w / 2 && y - h / 2 > 0 && y + h / 2 < room.h &&
+        boxes.every((q) => x + w / 2 + 26 < q.x || x - w / 2 - 26 > q.x + q.w || y + h / 2 + 26 < q.y || y - h / 2 - 26 > q.y + q.h);
+      let found = null;
+      // Porte et fenêtres : directement contre un mur (gauche pour la porte, droite pour les fenêtres).
+      if (a.k === 'door' || a.k === 'window') {
+        const sideX = a.k === 'door' ? -room.w / 2 + 10 : room.w / 2 - 8;
+        const rot = a.k === 'door' ? 270 : 90;
+        const iw = ITEM_TYPES[a.k].w;
+        const fits = (y) => y - iw / 2 > 0 && y + iw / 2 < room.h && boxes.every((q) => sideX + 30 < q.x || sideX - 30 > q.x + q.w || y + iw / 2 + 16 < q.y || y - iw / 2 - 16 > q.y + q.h);
+        const ys = a.k === 'door' ? Array.from({ length: 20 }, (_, i) => room.h - 90 - i * 40) : Array.from({ length: 20 }, (_, i) => 150 + i * 40);
+        const y = ys.find(fits);
+        if (y != null) {
+          const ni = item(a.k, Math.round(sideX), Math.round(y / GRID) * GRID, rot);
+          save((p) => { p.items.push(ni); }); setSel({ kind: 'item', id: ni.id });
+          return;
+        }
+      }
+      for (let r = 0; r < 900 && !found; r += 32) for (let k = 0; k < Math.max(1, r / 8) && !found; k++) {
+        const ang = (k / Math.max(1, r / 8)) * Math.PI * 2;
+        const x = Math.round(Math.cos(ang) * r / GRID) * GRID, y = Math.round((room.h / 2 + Math.sin(ang) * r * 0.7) / GRID) * GRID;
+        if (free(x, y)) found = { x, y };
+      }
+      cx = found ? found.x : 0; cy = found ? found.y : room.h / 2;
+    }
+    if (at) { cx = Math.round(at.x / GRID) * GRID; cy = Math.round(at.y / GRID) * GRID; }
     if (a.item) { const ni = item(a.k, cx, cy); save((p) => { p.items.push(ni); }); setSel({ kind: 'item', id: ni.id }); }
     else { const nt = a.make(cx, cy); save((p) => { p.tables.push(nt); }); setSel({ kind: 'table', id: nt.id }); }
+  };
+  /** Glisser une vignette de la boîte à éléments jusque dans la salle. */
+  const dragNew = (e, a) => {
+    const pic = e.currentTarget.querySelector('svg').outerHTML; // à lire tout de suite : l'événement est réutilisé ensuite
+    const ghost = () => { const d = document.createElement('div'); d.className = 'tile-ghost'; d.innerHTML = pic; return d; };
+    startDrag(e, { data: a.k, ghost, onDrop: (to, _d, ev) => {
+      if (to !== 'room') return;
+      const p = toSvg(ev);
+      addThing(a, flipped ? { x: left + right - p.x, y: top + bottom - p.y } : p);
+    } });
   };
   const keyArrange = (e) => {
     if (mode !== 'arrange' || !selEl) return;
@@ -315,11 +366,12 @@ function PlanEditor({ cls, plan, onNewRoom }) {
       </div>
       <div class="print-head" aria-hidden="true"><h1>Plan de classe — ${cls.name}</h1><p>${plan.name} · ${flipped ? 'vue depuis le bureau' : 'vue des élèves'} · ${date}</p></div>
 
-      <div class="room-wrap" tabindex=${mode === 'arrange' ? 0 : undefined} onKeyDown=${keyArrange}>
+      <div class="room-wrap" data-drop=${mode === 'arrange' ? 'room' : undefined} tabindex=${mode === 'arrange' ? 0 : undefined} onKeyDown=${keyArrange}>
         <svg ref=${svgRef} class=${`room ${shuffling ? 'shuffling' : ''} ${picked ? 'has-pick' : ''}`} viewBox=${`${left} ${top} ${W} ${H}`} role="group" aria-label=${`Salle ${plan.name}, ${plural(seats.length, 'place', 'places')}`}
           onPointerDown=${(e) => { if (e.target === svgRef.current || e.target.classList.contains('floor')) { setSel(null); setPicked(null); } }}>
           <defs><pattern id="floor" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" class="floor-line"/></pattern></defs>
           <rect x=${left} y=${top} width=${W} height=${H} fill="url(#floor)" class="floor"/>
+          ${room && (() => { const a = P(-room.w / 2, 0), c = P(room.w / 2, room.h); return html`<rect x=${Math.min(a.x, c.x)} y=${Math.min(a.y, c.y)} width=${room.w} height=${room.h} rx="6" class="walls" pointer-events="none"/>`; })()}
           ${tables.map((t) => { const p = P(t.x, t.y); const w = t.cols * SEAT_W, h = t.rows * SEAT_H;
             return html`<g key=${t.id} class=${`tbl-g ${isSel('table', t.id) ? 'sel' : ''} ${t.bare ? 'bare' : ''}`} transform=${`translate(${p.x} ${p.y}) rotate(${rotD(t.rot)})`} onPointerDown=${(e) => dragEl(e, 'table', t)}>
               ${t.bare ? html`<rect x="-24" y="-22" width="48" height="44" rx="14" class="chair-solo"/>` : html`
@@ -347,12 +399,13 @@ function PlanEditor({ cls, plan, onNewRoom }) {
               ${locked.has(seat) && html`<g transform=${`translate(${SEAT_W / 2 - 11} ${-SEAT_H / 2 + 11})`} class="pin"><circle r="7"/><path d="M-2.5 -2.5 2.5 2.5M-1 -4 4 1M-3 3l-2 2" /></g>`}
             </g>`;
           })}
-          ${mode === 'arrange' && !tables.length && html`<text x=${(left + right) / 2} y=${(top + bottom) / 2 + 40} text-anchor="middle" class="room-empty">Ajoutez des tables avec les boutons ci-dessous, puis faites-les glisser.</text>`}
+          ${guides && html`<g class="guides" pointer-events="none">${guides.x != null && (() => { const g = P(guides.x, 0); return html`<line x1=${g.x} x2=${g.x} y1=${top} y2=${bottom}/>`; })()}${guides.y != null && (() => { const g = P(0, guides.y); return html`<line y1=${g.y} y2=${g.y} x1=${left} x2=${right}/>`; })()}</g>`}
+          ${mode === 'arrange' && !tables.length && html`<text x=${(left + right) / 2} y=${(top + bottom) / 2 + 40} text-anchor="middle" class="room-empty">Glissez des tables depuis la boîte à éléments →</text>`}
         </svg>
       </div>
 
       ${mode === 'place' && html`<div class="tray no-print" data-drop="tray" aria-label="Élèves non placés">
-        <div class="tray-head"><b>${unplaced.length ? `${plural(unplaced.length, 'élève à placer', 'élèves à placer')}` : 'Tout le monde est placé'}</b>${unplaced.length > 0 && html`<span class="hint">Glissez-les sur une place, ou cliquez puis choisissez une place.</span>`}</div>
+        ${!seats.length ? html`<div class="tray-head"><b>Votre salle n’a pas encore de tables.</b><button class="btn btn-sm btn-primary" onClick=${() => setMode('arrange')}><${Icon} name="move"/>Aménager la salle</button></div>` : ''}<div class="tray-head"><b>${unplaced.length ? `${plural(unplaced.length, 'élève à placer', 'élèves à placer')}` : 'Tout le monde est placé'}</b>${unplaced.length > 0 && html`<span class="hint">Glissez-les sur une place, ou cliquez puis choisissez une place.</span>`}</div>
         <div class="tray-list">${unplaced.map((st) => html`<button key=${st.id} class=${`member ${picked === st.id ? 'picked' : ''}`} aria-pressed=${picked === st.id}
           onPointerDown=${(e) => startDrag(e, { data: st.id, onDrop: (to) => place(st.id, to) })} onClick=${() => setPicked(picked === st.id ? null : st.id)}>${st.first} ${st.last ? st.last[0] + '.' : ''}</button>`)}</div>
       </div>`}
@@ -367,7 +420,8 @@ function PlanEditor({ cls, plan, onNewRoom }) {
           ${!selT.bare && html`<span class="seg" role="group" aria-label="Rangs"><button aria-pressed=${selT.rows === 1} onClick=${() => setRows(1)}>1 rang</button><button aria-pressed=${selT.rows === 2} onClick=${() => setRows(2)}>2 rangs</button></span>`}
           <button class="btn btn-sm" onClick=${() => edit((t) => { t.rot = (t.rot + 90) % 360; })}><${Icon} name="rotate-cw"/>90°</button>
           <button class="btn btn-sm" onClick=${() => edit((t) => { t.rot = (t.rot + 15) % 360; })}>15°</button>
-          <button class="btn btn-sm" onClick=${duplicate}><${Icon} name="copy"/>Dupliquer</button>
+          <button class="btn btn-sm" onClick=${() => copyBeside('right')} title="Ajoute la même table juste à droite"><${Icon} name="copy"/>Copier à droite</button>
+          <button class="btn btn-sm" onClick=${() => copyBeside('below')} title="Ajoute la même table juste en dessous"><${Icon} name="copy"/>Copier en dessous</button>
           <button class="btn btn-sm btn-danger" onClick=${removeSel}><${Icon} name="trash-2"/>Supprimer</button>
           <button class="btn btn-sm btn-ghost" onClick=${() => setSel(null)}>Terminé</button>`
         : selI ? html`<span class="ab-title"><b>${ITEM_TYPES[selI.type].label}</b></span>
@@ -378,13 +432,29 @@ function PlanEditor({ cls, plan, onNewRoom }) {
           <button class="btn btn-sm" onClick=${duplicate}><${Icon} name="copy"/>Dupliquer</button>
           <button class="btn btn-sm btn-danger" onClick=${removeSel}><${Icon} name="trash-2"/>Supprimer</button>
           <button class="btn btn-sm btn-ghost" onClick=${() => setSel(null)}>Terminé</button>`
-        : html`<span class="ab-title"><b>Ajouter</b><span class="hint hide-sm"> puis faites glisser à sa place</span></span>
-          ${ADDABLE.map((a) => html`<button class="btn btn-sm" onClick=${() => addThing(a)}><${Icon} name=${a.icon}/>${a.label}</button>`)}`}
+        : html`<span class="ab-title"><${Icon} name="info" size=${16} style="vertical-align:-3px;margin-right:6px;color:var(--encre)"/>Glissez un élément pour le déplacer, cliquez dessus pour le modifier.</span>
+          ${room && html`<span class="ab-group"><span class="hint">Largeur de la salle</span><button class="btn btn-sm btn-icon" onClick=${() => save((p) => { p.room.w = Math.max(400, p.room.w - 50); })} aria-label="Salle moins large">−</button><b class="tnum">${(room.w / 100).toLocaleString('fr-FR')} m</b><button class="btn btn-sm btn-icon" onClick=${() => save((p) => { p.room.w = Math.min(2000, p.room.w + 50); })} aria-label="Salle plus large">+</button></span>
+          <span class="ab-group"><span class="hint">Profondeur</span><button class="btn btn-sm btn-icon" onClick=${() => save((p) => { p.room.h = Math.max(300, p.room.h - 50); })} aria-label="Salle moins profonde">−</button><b class="tnum">${(room.h / 100).toLocaleString('fr-FR')} m</b><button class="btn btn-sm btn-icon" onClick=${() => save((p) => { p.room.h = Math.min(2000, p.room.h + 50); })} aria-label="Salle plus profonde">+</button></span>`}`}
         <span class="spacer"></span><span class="chip tnum">${seats.length} places · ${cls.students.length} élèves</span></div>
-        ${mode === 'arrange' && html`<p class="hint no-print arrange-tip">Cliquez sur un élément pour le modifier. Clavier : flèches pour déplacer, R pour tourner, Suppr pour effacer, Ctrl+Z pour annuler.</p>`}`}
+        ${mode === 'arrange' && html`<p class="hint no-print arrange-tip">Astuce clavier : flèches pour déplacer, R pour tourner, Suppr pour effacer, Ctrl+Z pour annuler.</p>`}`}
     </section>
 
     <aside class="tool-side no-print stack" style="--gap:14px">
+      ${mode === 'arrange' ? html`
+      <div class="card side-card">
+        <h3>Votre salle en 3 étapes</h3>
+        <ol class="mini-steps">
+          <li class=${items.some((i) => i.type === 'board') ? 'ok' : ''}><span>${items.some((i) => i.type === 'board') ? '✓' : '1'}</span>Le tableau et le bureau à leur place</li>
+          <li class=${seats.length >= cls.students.length ? 'ok' : ''}><span>${seats.length >= cls.students.length ? '✓' : '2'}</span>Des places pour tous (${seats.length} / ${cls.students.length})</li>
+          <li><span>3</span>Installer les élèves</li>
+        </ol>
+        <button class="btn btn-primary" onClick=${() => { setMode('place'); setSel(null); }} disabled=${!seats.length}><${Icon} name="users"/>Passer au placement des élèves</button>
+      </div>
+      <div class="card side-card">
+        <h3>Boîte à éléments</h3>
+        <p>Glissez un élément dans la salle, ou cliquez pour l’ajouter.</p>
+        <div class="toolbox">${ADDABLE.map((a) => html`<button class="tile" onPointerDown=${(e) => dragNew(e, a)} onClick=${() => addThing(a)} aria-label=${'Ajouter : ' + a.label}>${a.pic}<span>${a.label}</span></button>`)}</div>
+      </div>` : html`
       <div class="card side-card">
         <h3>Placement automatique</h3>
         <div class="mode-list" role="radiogroup" aria-label="Méthode de placement">${STRATEGIES.map((s) => html`<button role="radio" aria-checked=${strategy === s.id} class="mode-opt compact" onClick=${() => setStrategy(s.id)}><span><b>${s.label}</b><small>${s.hint}</small></span></button>`)}</div>
@@ -395,6 +465,7 @@ function PlanEditor({ cls, plan, onNewRoom }) {
       </div>
       ${bad.size > 0 && html`<div class="notice warn"><${Icon} name="triangle-alert"/><div>Certains élèves à séparer sont voisins (en rouge).</div></div>`}
       <${ConstraintsCard} cls=${cls}/>
+`}
     </aside>
     <${RenameRoom} open=${renaming} onClose=${() => setRenaming(false)} cls=${cls} plan=${plan}/>
   </div>`;
