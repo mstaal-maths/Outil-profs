@@ -10,6 +10,7 @@ import { ClassPage } from './pages/classe.js';
 import { Account } from './pages/account.js';
 import { LegalPage } from './pages/legal.js';
 import { TimerTool } from './tools/minuteur.js';
+import { DocumentsHome, NewDocument, DocEditor } from './pages/documents.js';
 
 applyTheme();
 
@@ -42,8 +43,9 @@ function App() {
     if (path === '/demo' || path.startsWith('/demo/')) {
       setDemoStarting(true);
       startDemo();
-      const tool = path.split('/')[2];
-      navigate('/classes/demo-5' + (tool ? '/' + tool : ''), { replace: true });
+      const parts = path.split('/');
+      if (parts[2] === 'doc') navigate('/documents/nouveau/' + parts[3], { replace: true });
+      else navigate('/classes/demo-5' + (parts[2] ? '/' + parts[2] : ''), { replace: true });
       setDemoStarting(false);
     }
   }, [path]);
@@ -73,6 +75,16 @@ function App() {
         page = html`<${ClassPage} cls=${cls} tab=${parts[2] || 'eleves'} key=${cls.id}/>`;
         crumbs = [{ label: 'Mes classes', href: '/classes' }, { label: cls.name, href: `/classes/${cls.id}` }];
       }
+    }
+  } else if (parts[0] === 'documents') {
+    const g = needAuth();
+    if (g) page = g;
+    else if (!parts[1]) { page = html`<${DocumentsHome}/>`; crumbs = [{ label: 'Mes documents' }]; }
+    else if (parts[1] === 'nouveau') page = html`<${NewDocument} tool=${parts[2]}/>`;
+    else {
+      const d = s.docs[parts[1]];
+      if (!d) page = html`<${NotFound}/>`;
+      else { page = html`<${DocEditor} doc=${d} key=${d.id}/>`; crumbs = [{ label: 'Mes documents', href: '/documents' }, { label: d.name || 'Sans titre' }]; }
     }
   } else if (parts[0] === 'compte') { page = needAuth() || html`<${Account}/>`; crumbs = [{ label: 'Mon compte' }]; }
   else page = html`<${NotFound}/>`;

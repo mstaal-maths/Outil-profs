@@ -104,6 +104,8 @@ export async function startOver(kek) {
   const uid = auth.currentUser.uid;
   const snaps = await fb.getDocs(classCol(uid));
   await Promise.all(snaps.docs.map((d) => fb.deleteDoc(d.ref)));
+  const ds = await fb.getDocs(docCol(uid));
+  await Promise.all(ds.docs.map((d) => fb.deleteDoc(d.ref)));
   const { dek, recoveryKey, keyring } = await C.createKeyring(kek);
   await fb.setDoc(userDoc(uid), { keyring, createdAt: fb.serverTimestamp() });
   await C.stashKey(dek);
@@ -142,6 +144,29 @@ export async function changePassword(email, oldPw, newPw, dek) {
   await fb.updatePassword(auth.currentUser, newD.authSecret);
   await fb.setDoc(userDoc(uid), { keyring: { ...keyring, byPassword: await C.wrapKey(dek, newD.kek) } }, { merge: true });
 }
+
+// ---------- Documents (QCM, mots croisés…) : même principe que les classes ----------
+const docCol = (uid) => fb.collection(db, 'users', uid, 'docs');
+export async function loadDocs(dek) {
+  const snaps = await fb.getDocs(docCol(auth.currentUser.uid));
+  const out = [];
+  for (const d of snaps.docs) { try { out.push(await C.decryptJSON(dek, d.data().box, 'doc:' + d.id)); } catch {} }
+  return out;
+}
+export function watchDocs(dek, onChange) {
+  return fb.onSnapshot(docCol(auth.currentUser.uid), async (snap) => {
+    if (snap.metadata.hasPendingWrites) return;
+    for (const ch of snap.docChanges()) {
+      if (ch.type === 'removed') { onChange({ type: 'removed', id: ch.doc.id }); continue; }
+      try { onChange({ type: 'upsert', doc: await C.decryptJSON(dek, ch.doc.data().box, 'doc:' + ch.doc.id) }); } catch {}
+    }
+  }, () => {});
+}
+export async function saveDocument(dek, d) {
+  const box = await C.encryptJSON(dek, d, 'doc:' + d.id);
+  return fb.setDoc(fb.doc(db, 'users', auth.currentUser.uid, 'docs', d.id), { box, updatedAt: fb.serverTimestamp() });
+}
+export async function removeDocument(id) { return fb.deleteDoc(fb.doc(db, 'users', auth.currentUser.uid, 'docs', id)); }
 
 // ---------- Données ----------
 export async function loadClasses(dek) {
@@ -200,6 +225,8 @@ export async function deleteAccount(email, password) {
   const uid = auth.currentUser.uid;
   const snaps = await fb.getDocs(classCol(uid));
   await Promise.all(snaps.docs.map((x) => fb.deleteDoc(x.ref)));
+  const ds = await fb.getDocs(docCol(uid));
+  await Promise.all(ds.docs.map((x) => fb.deleteDoc(x.ref)));
   await fb.deleteDoc(userDoc(uid));
   await fb.deleteUser(auth.currentUser);
 }

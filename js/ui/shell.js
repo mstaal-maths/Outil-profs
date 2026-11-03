@@ -10,11 +10,11 @@ export const TOOLS = [
   { id: 'groupes', name: 'Groupes', icon: 'users', desc: 'Aléatoires, hétérogènes ou homogènes, avec vos contraintes.', phase: 1, key: '2' },
   { id: 'minuteur', name: 'Minuteur', icon: 'timer', desc: 'Lisible du fond de la classe, avec signal de fin.', phase: 1, key: '3' },
   { id: 'plan', name: 'Plan de classe', icon: 'armchair', desc: 'Dessinez votre vraie salle, placez vos élèves, imprimez.', phase: 1, key: '4' },
-  { id: 'qcm', name: 'QCM & quiz', icon: 'list-checks', desc: 'Imprimables, avec corrigé séparé.', phase: 2 },
-  { id: 'mots', name: 'Mots croisés & mêlés', icon: 'grid-3x3', desc: 'Et textes à trous, en un instant.', phase: 2 },
-  { id: 'flashcards', name: 'Flashcards', icon: 'layers', desc: 'Recto-verso parfaitement alignés.', phase: 2 },
-  { id: 'lexique', name: 'Fiches de vocabulaire', icon: 'book-open', desc: 'Lexiques propres et lisibles.', phase: 2 },
-  { id: 'jeux', name: 'Jeux de révision', icon: 'puzzle', desc: 'Jeu de l’oie, dominos, cartes.', phase: 2 },
+  { id: 'qcm', doc: true, name: 'QCM & quiz', icon: 'list-checks', desc: 'Imprimables, avec corrigé séparé.', phase: 2, live: true },
+  { id: 'mots', doc: true, name: 'Mots croisés & mêlés', icon: 'grid-3x3', desc: 'Et textes à trous, en un instant.', phase: 2, live: true },
+  { id: 'flashcards', doc: true, name: 'Flashcards', icon: 'layers', desc: 'Recto-verso parfaitement alignés.', phase: 2, live: true },
+  { id: 'lexique', doc: true, name: 'Fiches de vocabulaire', icon: 'book-open', desc: 'Lexiques propres et lisibles.', phase: 2, live: true },
+  { id: 'jeux', doc: true, name: 'Jeux de révision', icon: 'puzzle', desc: 'Jeu de l’oie, dominos, cartes.', phase: 2, live: true },
   { id: 'stats', name: 'Statistiques', icon: 'chart-column', desc: 'Moyenne, médiane, répartition.', phase: 3 },
   { id: 'appreciations', name: 'Appréciations', icon: 'message-square-text', desc: 'Plusieurs formulations, copiées en un clic.', phase: 3 },
   { id: 'conseil', name: 'Bilan de conseil', icon: 'presentation', desc: 'Un bilan structuré et bien rédigé.', phase: 3 },
@@ -126,6 +126,11 @@ function buildCommands(s, path) {
     cmds.push({ group: 'Classes', label: c.name, icon: 'graduation-cap', color: colorHex(c.color), hint: plural(c.students.length, 'élève', 'élèves'), run: () => navigate(`/classes/${c.id}`) });
     for (const t of TOOLS.filter((x) => x.phase === 1 && x.id !== 'minuteur')) cmds.push({ group: 'Outils', label: `${t.name} — ${c.name}`, icon: t.icon, run: () => navigate(`/classes/${c.id}/${t.id}`), hidden: true });
     for (const st of c.students) cmds.push({ group: 'Élèves', label: `${st.first} ${st.last}`.trim(), icon: 'user-plus', hint: c.name, run: () => navigate(`/classes/${c.id}`), hidden: true });
+  }
+  if (s.mode !== 'none') {
+    cmds.push({ group: 'Documents', label: 'Mes documents', icon: 'file-text', run: () => navigate('/documents'), kw: 'imprimer pdf word' });
+    for (const t of TOOLS.filter((x) => x.doc)) cmds.push({ group: 'Documents', label: `Créer : ${t.name}`, icon: t.icon, run: () => navigate('/documents/nouveau/' + t.id), kw: t.desc + ' imprimer pdf word' });
+    for (const d of Object.values(s.docs || {})) cmds.push({ group: 'Documents', label: d.name || 'Sans titre', icon: 'file-text', hint: 'document', run: () => navigate('/documents/' + d.id), hidden: true });
   }
   if (s.mode !== 'none') cmds.push({ group: 'Actions', label: 'Nouvelle classe', icon: 'plus', run: () => navigate('/classes?nouvelle'), kw: 'créer ajouter' });
   cmds.push({ group: 'Outils', label: 'Minuteur', icon: 'timer', run: () => navigate(cur ? `/classes/${cur.id}/minuteur` : '/minuteur'), kw: 'chrono compte à rebours' });

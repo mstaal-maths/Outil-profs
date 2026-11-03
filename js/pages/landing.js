@@ -214,7 +214,9 @@ export function Landing() {
             <div class="bento-text"><span class="bento-ico"><${Icon} name=${t.icon}/></span><h3>${t.name}</h3><p>${t.desc}</p>
             <span class="bento-try">Essayer<${Icon} name="arrow-right"/></span></div>
           </a>`)}
-          ${later.map((t, i) => html`<div class="bento-card small reveal" style=${`--d:${i * 40}ms`}>
+          ${later.map((t, i) => t.live ? html`<a class="bento-card small live reveal" style=${`--d:${i * 40}ms`} href=${'#/demo/doc/' + t.id}>
+            <span class="bento-ico"><${Icon} name=${t.icon}/></span><div><h3>${t.name}</h3><p>${t.desc}</p></div><span class="badge">PDF · Word</span></a>`
+          : html`<div class="bento-card small reveal" style=${`--d:${i * 40}ms`}>
             <span class="bento-ico"><${Icon} name=${t.icon}/></span><div><h3>${t.name}</h3><p>${t.desc}</p></div><span class="badge badge-soon">Bientôt</span></div>`)}
         </div>
       </section>

@@ -26,6 +26,16 @@ service cloud.firestore {
           && request.resource.data.box.ct is string
           && request.resource.data.box.ct.size() < 900000;
       }
+
+      // Documents (QCM, mots croisés, flashcards…) : chiffrés de la même façon.
+      match /docs/{docId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['box', 'updatedAt'])
+          && request.resource.data.box.keys().hasOnly(['v', 'iv', 'ct'])
+          && request.resource.data.box.ct is string
+          && request.resource.data.box.ct.size() < 900000;
+      }
     }
 
     // Tout le reste est interdit.
