@@ -465,3 +465,4 @@
 @media (max-width: 760px) { .wz-steps { padding: 4px 18px 0; } .big-steps li { grid-template-columns: 34px 1fr; } .bs-n { width: 34px; height: 34px; } }
 .bs-hint { grid-column: 2; }
 .ec-sample { font-variant-numeric: tabular-nums; color: var(--ink-2) !important; font-weight: 500 !important; font-size: .86rem !important; }
+.wz-dups { display: flex; gap: 8px; align-items: center; justify-content: center; color: var(--vert); font-weight: 700; }

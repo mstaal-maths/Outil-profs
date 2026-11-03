@@ -366,7 +366,7 @@ function PasteGrades({ open, onClose, cls, period }) {
 
   // Évaluations déjà présentes : même intitulé, ou mêmes notes pour presque tous les élèves.
   const dupOf = (col, j) => cls.evals.filter((e) => e.period === per).find((e) => {
-    if (norm(e.title) === norm(col.title)) return true;
+    if (!col.untitled && norm(e.title) === norm(col.title)) return true; // sans titre : on compare seulement les notes
     let same = 0, n = 0;
     for (const r of parsed.rows) {
       if (!r.st) continue;
@@ -431,7 +431,10 @@ function PasteGrades({ open, onClose, cls, period }) {
         return st.id;
       });
       const today = new Date().toISOString().slice(0, 10);
+      let num = c.evals.filter((e) => e.period === per).length;
       for (const { c: col, j } of active) {
+        num++;
+        if (col.untitled) col.title = `Devoir ${num}`;
         const grades = {};
         parsed.rows.forEach((r, i) => { const v = r.cells[j]?.v; if (ids[i] && v != null && v !== undefined && (typeof v !== 'number' || v <= col.max)) grades[ids[i]] = v; });
         c.evals.push({ id: uid('e_'), period: per, title: col.title.trim() || 'Évaluation importée', max: Number(col.max) || 20, coef: Number(col.coef) || 1, date: today, grades });
@@ -468,12 +471,13 @@ function PasteGrades({ open, onClose, cls, period }) {
       <p class="wz-lead">${active.length
         ? html`J’ai trouvé <b>${plural(active.length, 'nouvelle évaluation', 'nouvelles évaluations')}</b> pour <b>${plural(parsed.rows.filter(usableRow).length, 'élève', 'élèves')}</b>.`
         : html`Toutes ces notes sont <b>déjà dans Trousse</b>. Il n’y a rien de nouveau à ajouter.`}</p>
-      <div class="eval-cards">${cols.map((c, j) => c.skip ? null : html`<button class=${`eval-card ${c.include ? 'on' : ''} ${c.dup ? 'dup' : ''}`} onClick=${() => setCol(j, { include: !c.include })} aria-pressed=${c.include}>
+      ${cols.some((c) => c.dup && !c.skip) && html`<p class="wz-dups"><${Icon} name="circle-check" size=${18}/>${plural(cols.filter((c) => c.dup && !c.skip).length, 'devoir déjà dans Trousse n’est pas ajouté de nouveau', 'devoirs déjà dans Trousse ne sont pas ajoutés de nouveau')}.</p>`}
+      <div class="eval-cards">${cols.map((c, j) => c.skip || c.dup ? null : html`<button class=${`eval-card ${c.include ? 'on' : ''} ${c.dup ? 'dup' : ''}`} onClick=${() => setCol(j, { include: !c.include })} aria-pressed=${c.include}>
         <span class="ec-check" aria-hidden="true">${c.include ? '✓' : ''}</span>
-        <span class="ec-body"><b>${c.title}</b><span>${c.dup ? 'Déjà dans Trousse' : `${plural(countFor(j), 'note', 'notes')} · sur ${fmt2(c.max)}${c.coef !== 1 ? ` · coef ${fmt2(c.coef)}` : ''}`}</span>
+        <span class="ec-body"><b>${c.untitled ? `Devoir ${cls.evals.filter((e) => e.period === per).length + 1 + cols.slice(0, j).filter((x) => x.include && !x.skip && !x.dup).length}` : c.title}</b><span>${c.dup ? 'Déjà dans Trousse' : `${plural(countFor(j), 'note', 'notes')} · sur ${fmt2(c.max)}${c.coef !== 1 ? ` · coef ${fmt2(c.coef)}` : ''}`}</span>
           <span class="ec-sample">${parsed.rows.map((r) => r.cells[j]).filter((x) => x && x.v != null && x.v !== undefined).slice(0, 4).map(show).join(' · ')}…</span></span>
       </button>`)}</div>
-      <p class="hint" style="text-align:center">Cliquez sur une carte pour l’ajouter ou la retirer. Une carte qui affiche « 1 · 2 · 3… » est sans doute le rang : retirez-la.</p>
+      ${active.length > 0 && html`<p class="hint" style="text-align:center">Le rang et la moyenne générale sont écartés automatiquement. Vous pouvez donner un nom à chaque devoir plus tard, dans le tableau des notes.</p>`}
       ${unknown.length > 0 && html`<div class="notice"><${Icon} name="user-plus"/><div>
         ${cls.students.length ? html`<b>${plural(unknown.length, 'élève n’est pas encore dans cette classe', 'élèves ne sont pas encore dans cette classe')}</b> : ${unknown.slice(0, 4).map((r) => r.name).join(', ')}${unknown.length > 4 ? '…' : ''}.` : html`<b>La classe est vide</b> : je vais créer les ${unknown.length} élèves du tableau.`}
         <label class="check-row" style="margin-top:8px"><input type="checkbox" checked=${addNew} onChange=${(e) => setAddNew(e.target.checked)}/><span>Les ajouter à la classe</span></label></div></div>`}

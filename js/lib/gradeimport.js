@@ -90,6 +90,10 @@ export function parseGradeTable(text, cls) {
     rows.push({ name, st: matchStudent(cls, name), raw: r.slice(nameCols), cells: Array.from({ length: width }, (_, j) => readCell(r[nameCols + j])) });
   }
 
+  // Positions parmi les colonnes réellement remplies (École Directe intercale des colonnes vides).
+  const filled = Array.from({ length: width }, (_, j) => j).filter((j) => rows.some((r) => String(r.raw[j] || '').trim()));
+  const pos = (j) => filled.indexOf(j);
+
   // Colonne « Rang » : à écarter (ce ne sont pas des notes).
   const headerText = (j) => metaRows.filter((r) => !metaKind(r, nameCols)).map((r) => (r[nameCols + j] || '').trim()).filter(Boolean);
   const isRankCol = (j) => {
@@ -105,7 +109,7 @@ export function parseGradeTable(text, cls) {
       const ranks = rl.map((x) => Number(x.match(RANK)[1]));
       if (totals.size === 1 && tot >= rows.length * 0.6 && tot !== 20 && tot !== 10 && new Set(ranks).size / ranks.length >= 0.7) return true;
     }
-    if (j > 1) return false; // un rang « nu » n'est cherché que juste après les noms, comme dans École Directe
+    if (pos(j) < 0 || pos(j) > 2) return false; // un rang « nu » n'est cherché qu'au début, comme dans École Directe
     const nums = raw.map((x) => Number(x.match(RANK)?.[1])).filter((n) => Number.isInteger(n));
     if (nums.length < raw.length * 0.9) return false;
     const distinct = new Set(nums).size / nums.length;
@@ -113,12 +117,15 @@ export function parseGradeTable(text, cls) {
     return Math.min(...nums) === 1 && distinct >= 0.7 && hi <= rows.length + 1 && hi >= rows.length * 0.6 && !raw.some((x) => /[.,]/.test(x));
   };
   const rankCols = new Set(Array.from({ length: width }, (_, j) => j).filter(isRankCol));
+  // Vue « Éditions » d'École Directe : Moyenne générale puis Rang, avant les devoirs. Tout ce qui précède le rang est écarté.
+  const avgCols = new Set();
+  for (const rc of rankCols) for (const j of filled) if (pos(j) < pos(rc)) avgCols.add(j);
 
   const columns = [];
   for (let j = 0; j < width; j++) {
     const vals = rows.map((r) => r.cells[j]).filter((c) => typeof c.v === 'number');
     const any = rows.some((r) => r.cells[j].v !== null && r.cells[j].v !== undefined);
-    if (!any || rankCols.has(j)) { columns.push(null); continue; }
+    if (!any || rankCols.has(j) || avgCols.has(j)) { columns.push(null); continue; }
     const h = headerText(j).join(' — ');
     const metaVal = (kind) => { const r = metaRows.find((x) => metaKind(x, nameCols) === kind); return r ? String(r[nameCols + j] || '').trim().replace(',', '.') : ''; };
     const mCoef = metaVal('coef').match(/^\d+(\.\d+)?$/)?.[0];
@@ -130,7 +137,7 @@ export function parseGradeTable(text, cls) {
     let max = outOf || (mMax ? Number(mMax) : hMax ? Number(hMax.replace(',', '.')) : hi <= 5 ? 5 : hi <= 10 ? 10 : 20);
     if (hi > max) max = hi <= 20 ? 20 : Math.ceil(hi);
     const title = h.replace(/\(?\s*(?:coef(?:ficient)?\.?\s*:?\s*\d+(?:[.,]\d+)?|x\s*\d+)\s*\)?/gi, '').replace(/(?:\/|sur\s*)\d+(?:[.,]\d+)?/i, '').trim();
-    columns.push({ title: title || `Évaluation ${columns.filter(Boolean).length + 1}`, max, coef: mCoef ? Number(mCoef) : hCoef ? Number(hCoef.replace(',', '.')) : 1, include: !SKIP_TITLE.test(h), skip: SKIP_TITLE.test(h), invalid: rows.filter((r) => r.cells[j].v === undefined).length });
+    columns.push({ untitled: !title, title: title || `Évaluation ${columns.filter(Boolean).length + 1}`, max, coef: mCoef ? Number(mCoef) : hCoef ? Number(hCoef.replace(',', '.')) : 1, include: !SKIP_TITLE.test(h), skip: SKIP_TITLE.test(h), invalid: rows.filter((r) => r.cells[j].v === undefined).length });
   }
   // Colonne de moyenne sans titre (dans la vue Éditions d'École Directe : la 1re colonne après le rang).
   // On compare chaque colonne à la moyenne des autres notes de l'élève : si elles collent, c'est une moyenne.
@@ -154,7 +161,7 @@ export function parseGradeTable(text, cls) {
   const firstReal = real[0];
   for (const j of real) {
     const c = columns[j];
-    const untitled = /^Évaluation \d+$/.test(c.title);
+    const untitled = c.untitled;
     const isFirst = j === firstReal;
     if (untitled && ((isFirst && looksLikeAverage(j, 1.2, 0.8, 2)) || looksLikeAverage(j, 0.5, 0.9, 3))) {
       Object.assign(c, { title: 'Moyenne générale', include: false, skip: true });
