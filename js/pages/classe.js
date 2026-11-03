@@ -448,11 +448,13 @@ function PasteGrades({ open, onClose, cls, period }) {
     ${step === 'copy' && html`<div class="dlg-body wz-body" onPaste=${onPaste}>
       <ol class="big-steps">
         <li><span class="bs-n">1</span><div><b>Ouvrez École Directe</b> dans un autre onglet, puis le <b>carnet de notes</b> de votre classe.</div></li>
-        <li><span class="bs-n">2</span><div><b>Sélectionnez le tableau avec la souris :</b> cliquez juste avant le premier nom, gardez le bouton appuyé et descendez jusqu’à la dernière note. Puis faites un clic droit → <b>Copier</b>.</div>
+        <li><span class="bs-n">2</span><div>Cliquez sur <b>« Éditions »</b>, en haut à droite (à côté du <b>+</b>). Le tableau de notes s’affiche.</div></li>
+        <li><span class="bs-n">3</span><div><b>Sélectionnez le tableau avec la souris :</b> cliquez juste avant le premier nom, gardez le bouton appuyé et descendez jusqu’à la dernière note. Puis faites un clic droit → <b>Copier</b>.</div>
           <svg class="bs-illu" viewBox="0 0 220 90" aria-hidden="true"><rect x="1" y="1" width="218" height="88" rx="8" class="bi-bg"/><rect x="10" y="12" width="200" height="14" rx="3" class="bi-head"/>
             ${[0, 1, 2].map((r) => html`<rect x="10" y=${32 + r * 18} width="70" height="12" rx="3" class="bi-cell"/>${[0, 1, 2, 3].map((k) => html`<rect x=${88 + k * 31} y=${32 + r * 18} width="26" height="12" rx="3" class="bi-cell"/>`)}`)}
-            <rect x="6" y="9" width="208" height="73" rx="5" class="bi-sel"/><path d="M196 70l6 17 3-7 8 7 3-3-8-7 7-3z" class="bi-cur"/></svg></li>
-        <li><span class="bs-n">3</span><div><b>Revenez ici</b> et appuyez sur le gros bouton :</div></li>
+            <rect x="6" y="9" width="208" height="73" rx="5" class="bi-sel"/><path d="M196 70l6 17 3-7 8 7 3-3-8-7 7-3z" class="bi-cur"/></svg>
+          <span class="hint bs-hint">Pas d’inquiétude pour la colonne « Rang » : Trousse l’ignore tout seul.</span></li>
+        <li><span class="bs-n">4</span><div><b>Revenez ici</b> et appuyez sur le gros bouton :</div></li>
       </ol>
       <button class="btn btn-primary btn-xl" onClick=${pasteButton} autofocus><${Icon} name="clipboard-paste"/>Coller mes notes</button>
       <p class="wz-alt">ou appuyez sur <span class="kbd">Ctrl</span> + <span class="kbd">V</span> (sur Mac : <span class="kbd">⌘</span> + <span class="kbd">V</span>)</p>

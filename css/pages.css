@@ -463,3 +463,4 @@
 .done-ico circle { fill: var(--vert-soft); stroke: var(--vert); stroke-width: 2.5; }
 .done-ico path { fill: none; stroke: var(--vert); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .6s var(--ease) forwards .15s; }
 @media (max-width: 760px) { .wz-steps { padding: 4px 18px 0; } .big-steps li { grid-template-columns: 34px 1fr; } .bs-n { width: 34px; height: 34px; } }
+.bs-hint { grid-column: 2; }
