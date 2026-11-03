@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Règles de sécurité Firestore pour Trousse.
+// Principe : chaque professeur ne peut lire et écrire QUE ses propres documents,
+// et ces documents ne contiennent que des données chiffrées dans le navigateur.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Profil : contient uniquement le trousseau de clés chiffré.
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['keyring', 'createdAt'])
+        && request.resource.data.keyring is map;
+
+      // Classes : un bloc chiffré { v, iv, ct } + la date de mise à jour. Rien d'autre.
+      match /classes/{classId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['box', 'updatedAt'])
+          && request.resource.data.box.keys().hasOnly(['v', 'iv', 'ct'])
+          && request.resource.data.box.ct is string
+          && request.resource.data.box.ct.size() < 900000;
+      }
+    }
+
+    // Tout le reste est interdit.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
