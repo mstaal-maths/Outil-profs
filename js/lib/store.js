@@ -16,6 +16,12 @@ let unwatch = null;
 const pending = new Map(); // id → nb d'écritures non confirmées
 const timers = new Map();
 const DEMO_KEY = 'trousse.demo';
+// Le stockage peut être refusé (navigation privée, cadre sécurisé) : on ne bloque jamais l'application.
+const ss = {
+  get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} },
+  del: (k) => { try { sessionStorage.removeItem(k); } catch {} },
+};
 
 export const getState = () => state;
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
@@ -42,7 +48,7 @@ export async function boot() {
     const s = await cloud.resumeSession();
     if (s) return await enterCloud(s.user, s.dek);
   } catch (e) { console.warn(e); }
-  const demo = sessionStorage.getItem(DEMO_KEY);
+  const demo = ss.get(DEMO_KEY);
   if (demo) {
     try { return set({ mode: 'demo', ready: true, save: 'demo', classes: JSON.parse(demo) }); } catch {}
   }
@@ -51,23 +57,23 @@ export async function boot() {
 
 export function startDemo(fresh = false) {
   let classes;
-  const saved = !fresh && sessionStorage.getItem(DEMO_KEY);
+  const saved = !fresh && ss.get(DEMO_KEY);
   if (saved) classes = JSON.parse(saved);
   else { classes = {}; for (const c of demoClasses()) classes[c.id] = c; }
   set({ mode: 'demo', ready: true, save: 'demo', classes, user: null });
   persistDemo();
 }
 function persistDemo() {
-  try { sessionStorage.setItem(DEMO_KEY, JSON.stringify(state.classes)); } catch {}
+  ss.set(DEMO_KEY, JSON.stringify(state.classes));
 }
 export function leaveDemo() {
-  sessionStorage.removeItem(DEMO_KEY);
+  ss.del(DEMO_KEY);
   set({ mode: 'none', classes: {}, save: 'idle' });
 }
 
 export async function enterCloud(user, key) {
   dek = key;
-  sessionStorage.removeItem(DEMO_KEY);
+  ss.del(DEMO_KEY);
   set({ mode: 'cloud', user: { email: user.email, uid: user.uid }, classes: {}, save: 'saving', ready: false });
   try {
     const list = await cloud.loadClasses(dek);
@@ -98,11 +104,13 @@ export async function logout() {
   timers.clear(); pending.clear();
   dek = null;
   await cloud.signOutAndWipe();
-  sessionStorage.clear();
+  try { sessionStorage.clear(); } catch {}
   // On ne garde localement que la préférence d'affichage (clair/sombre), sans aucune donnée.
-  const theme = localStorage.getItem('trousse.theme');
-  localStorage.clear();
-  if (theme) localStorage.setItem('trousse.theme', theme);
+  try {
+    const theme = localStorage.getItem('trousse.theme');
+    localStorage.clear();
+    if (theme) localStorage.setItem('trousse.theme', theme);
+  } catch {}
   set({ mode: 'none', user: null, classes: {}, save: 'idle', ready: true });
 }
 
