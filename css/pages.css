@@ -394,3 +394,72 @@
 .legal h2 { font-size: 1.35rem; margin: 28px 0 10px; }
 .legal p, .legal li { color: var(--ink-2); line-height: 1.7; }
 .legal p + p { margin-top: 10px; }
+
+/* ---------- Import des notes ---------- */
+.paste-help { align-items: flex-start; }
+.paste-help ol { margin: 6px 0 8px; padding-left: 20px; display: grid; gap: 3px; }
+.paste-help .kbd { height: 20px; min-width: 20px; font-size: .68rem; }
+.paste-area { min-height: 110px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: .85rem; }
+.import-wrap { max-height: 44dvh; }
+.import-tbl th { vertical-align: top; white-space: normal; height: auto; padding: 8px 10px; min-width: 130px; }
+.import-tbl th.sticky-col { min-width: 170px; vertical-align: bottom; }
+.import-tbl td { height: 36px; }
+.import-tbl .off { opacity: .4; }
+.imp-inc { display: flex; gap: 6px; align-items: center; font-size: .72rem; font-weight: 700; color: var(--ink-3); cursor: pointer; text-transform: uppercase; letter-spacing: .04em; }
+.imp-inc input { accent-color: var(--encre); width: 15px; height: 15px; margin: 0; }
+.imp-title { width: 100%; margin-top: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; background: var(--card); font-weight: 700; font-size: .84rem; color: var(--ink); }
+.imp-meta { display: flex; gap: 4px; align-items: center; margin-top: 5px; font-size: .74rem; font-weight: 600; color: var(--ink-3); text-transform: none; letter-spacing: 0; }
+.imp-meta input { width: 38px; border: 1px solid var(--line); border-radius: 5px; padding: 2px 4px; background: var(--card); text-align: center; font-size: .78rem; color: var(--ink); }
+.import-tbl td.bad { color: var(--marge-text); background: var(--marge-soft); font-weight: 700; }
+.import-tbl tr.unk td { color: var(--ink-3); }
+.ok-dot { color: var(--vert); font-weight: 800; margin-right: 6px; }
+.new-tag { display: inline-block; font-size: .7rem; font-weight: 800; color: var(--encre); background: var(--encre-soft); border-radius: 99px; padding: 1px 7px; margin-right: 4px; }
+.dup-tag { font-size: .68rem; font-weight: 800; color: var(--vert); background: var(--vert-soft); border-radius: 99px; padding: 1px 7px; text-transform: none; letter-spacing: 0; }
+
+/* ---------- Assistant « Ajouter mes notes » (pensé pour être très simple) ---------- */
+.wizard-dlg .dlg-head h2 { font-size: 1.7rem; }
+.wz-steps { display: flex; gap: 8px; padding: 4px 24px 0; flex-wrap: wrap; }
+.wz-steps span { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink-3); font-size: .95rem; }
+.wz-steps span + span::before { content: ''; width: 24px; height: 2px; background: var(--line-strong); border-radius: 1px; margin-right: 2px; }
+.wz-steps b { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--paper-3); color: var(--ink-2); font-size: .9rem; }
+.wz-steps .on { color: var(--ink); }
+.wz-steps .on b { background: var(--encre); color: var(--on-encre); }
+.wz-steps .done b { background: var(--vert); color: #fff; }
+.wz-body { display: grid; gap: 18px; font-size: 1.08rem; }
+.big-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+.big-steps li { display: grid; grid-template-columns: 40px 1fr; gap: 6px 14px; align-items: start; line-height: 1.5; }
+.bs-n { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--encre-soft); color: var(--encre); font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; }
+.bs-illu { grid-column: 2; width: min(300px, 100%); height: auto; margin-top: 4px; }
+.bi-bg { fill: var(--card-2); stroke: var(--line); }
+.bi-head { fill: var(--paper-3); }
+.bi-cell { fill: var(--paper-2); stroke: var(--line); }
+.bi-sel { fill: color-mix(in srgb, var(--encre) 14%, transparent); stroke: var(--encre); stroke-width: 1.5; stroke-dasharray: 5 4; transform-origin: 6px 9px; animation: biSel 2.6s var(--ease) infinite; }
+@keyframes biSel { 0% { transform: scale(.05, .05); } 55%, 100% { transform: none; } }
+.bi-cur { fill: var(--marge); stroke: #fff; stroke-width: 1; }
+.btn-xl { min-height: 68px; font-size: 1.3rem; border-radius: var(--r-lg); padding: 0 32px; justify-self: center; width: min(420px, 100%); }
+.btn-xl svg { width: 26px; height: 26px; }
+.wz-alt { text-align: center; color: var(--ink-3); font-size: .98rem; margin-top: -8px; }
+.wz-note { display: flex; gap: 8px; align-items: center; justify-content: center; color: var(--ink-3); font-size: .9rem; }
+.wz-note svg { color: var(--vert); }
+.paste-catch { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.wz-lead { font-size: 1.25rem; text-align: center; line-height: 1.5; }
+.eval-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.eval-card { display: flex; gap: 14px; align-items: center; text-align: left; padding: 16px; border-radius: var(--r-lg); border: 2px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; transition: border-color .2s, background .2s, transform .15s; font-size: 1rem; }
+.eval-card:hover { border-color: var(--line-strong); }
+.eval-card:active { transform: scale(.98); }
+.eval-card.on { border-color: var(--encre); background: var(--encre-softer); }
+.eval-card.dup:not(.on) { opacity: .6; }
+.ec-check { flex: none; width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--line-strong); display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 1rem; }
+.eval-card.on .ec-check { background: var(--encre); border-color: var(--encre); color: var(--on-encre); }
+.ec-body { display: grid; gap: 2px; min-width: 0; }
+.ec-body b { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; }
+.ec-body span { color: var(--ink-3); font-size: .9rem; font-weight: 600; }
+.eval-card.dup .ec-body span { color: var(--vert); }
+.wz-detail-btn { justify-self: center; }
+.wz-done { justify-items: center; text-align: center; padding-top: 28px; padding-bottom: 28px; }
+.wz-done h3 { font-size: 2rem; }
+.wz-done p { font-size: 1.15rem; color: var(--ink-2); }
+.done-ico svg { width: 84px; height: 84px; }
+.done-ico circle { fill: var(--vert-soft); stroke: var(--vert); stroke-width: 2.5; }
+.done-ico path { fill: none; stroke: var(--vert); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .6s var(--ease) forwards .15s; }
+@media (max-width: 760px) { .wz-steps { padding: 4px 18px 0; } .big-steps li { grid-template-columns: 34px 1fr; } .bs-n { width: 34px; height: 34px; } }

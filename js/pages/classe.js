@@ -5,6 +5,7 @@ import { updateClass, deleteClass, restoreClass } from '../lib/store.js';
 import { CLASS_COLORS, colorHex, periodsOf, currentPeriod, newStudent, studentAverage, classAverage, evalAverage } from '../lib/model.js';
 import { parseStudentLine, parseGrade, fmt1, fmt2, plural, norm, uid, fullName, fuzzyScore } from '../lib/util.js';
 import { TOOLS } from '../ui/shell.js';
+import { parseGradeTable } from '../lib/gradeimport.js';
 import { DrawTool } from '../tools/tirage.js';
 import { GroupsTool } from '../tools/groupes.js';
 import { TimerTool } from '../tools/minuteur.js';
@@ -266,13 +267,13 @@ function GradesTab({ cls }) {
     <div class="grades-bar">
       <div class="seg" role="tablist" aria-label="Période">${periods.map((p) => html`<button role="tab" aria-selected=${p.n === period} onClick=${() => setPeriod(p.n)}>${p.label}</button>`)}</div>
       <div class="spacer"></div>
-      <button class="btn" onClick=${() => setPaste(true)} disabled=${!cls.students.length}><${Icon} name="clipboard-paste"/>Coller un tableau</button>
-      <button class="btn btn-primary" onClick=${() => setEvalDlg('new')} disabled=${!cls.students.length}><${Icon} name="plus"/>Nouvelle évaluation</button>
+      <button class="btn" onClick=${() => setEvalDlg('new')} disabled=${!cls.students.length}><${Icon} name="plus"/>Nouvelle évaluation</button>
+      <button class="btn btn-primary" onClick=${() => setPaste(true)}><${Icon} name="clipboard-paste"/>Ajouter mes notes d’École Directe</button>
     </div>
-    ${!cls.students.length ? html`<div class="empty"><h3>Ajoutez d’abord vos élèves</h3><p>Les notes se saisissent dans un tableau, élève par élève.</p><a class="btn btn-primary" href=${`#/classes/${cls.id}`}>Ajouter des élèves</a></div>`
+    ${!cls.students.length ? html`<div class="empty"><h3>Pas encore d’élèves dans cette classe</h3><p>Collez directement votre tableau de notes d’École Directe : les élèves et leurs notes seront créés d’un coup.</p><div class="row" style="justify-content:center"><button class="btn btn-primary" onClick=${() => setPaste(true)}><${Icon} name="clipboard-paste"/>Coller mes notes</button><a class="btn" href=${`#/classes/${cls.id}`}>Ajouter des élèves à la main</a></div></div>`
     : evals.length === 0 ? html`<div class="empty"><h3>Pas encore de note ce ${periods.find((p) => p.n === period).label.toLowerCase()}</h3>
         <p>Créez une évaluation, puis saisissez les notes comme dans un tableur (Entrée pour descendre). Vous pouvez aussi coller un tableau depuis Pronote ou Excel.</p>
-        <div class="row" style="justify-content:center"><button class="btn btn-primary" onClick=${() => setEvalDlg('new')}><${Icon} name="plus"/>Nouvelle évaluation</button><button class="btn" onClick=${() => setPaste(true)}><${Icon} name="clipboard-paste"/>Coller un tableau</button></div>
+        <div class="row" style="justify-content:center"><button class="btn btn-primary" onClick=${() => setEvalDlg('new')}><${Icon} name="plus"/>Nouvelle évaluation</button><button class="btn" onClick=${() => setPaste(true)}><${Icon} name="clipboard-paste"/>Coller mes notes</button></div>
         <p class="hint">L’import depuis une capture d’écran arrive à la phase 3.</p></div>`
     : html`<div class="table-wrap"><table class="tbl gtbl" onKeyDown=${onKey}>
       <thead><tr><th class="sticky-col">Élève</th>
@@ -336,58 +337,165 @@ function EvalDialog({ target, onClose, cls, period }) {
   </${Dialog}>`;
 }
 
-/** Associe un nom collé à un élève de la classe (tolère accents, ordre, initiale). */
-export function matchStudent(cls, raw) {
-  const p = parseStudentLine(raw);
-  if (!p) return null;
-  let best = null, bestSc = 0;
-  for (const s of cls.students) {
-    const cands = [`${s.first} ${s.last}`, `${s.last} ${s.first}`];
-    const target = `${p.first} ${p.last}`;
-    let sc = 0;
-    if (norm(s.first) === norm(p.first) && norm(s.last) === norm(p.last)) sc = 200;
-    else if (norm(s.first) === norm(p.last) && norm(s.last) === norm(p.first)) sc = 190;
-    else sc = Math.max(...cands.map((c) => fuzzyScore(target, c)));
-    if (sc > bestSc) { bestSc = sc; best = s; }
-  }
-  return bestSc >= 60 ? best : null;
+export { matchStudent } from '../lib/gradeimport.js';
+
+/** Convertit un tableau HTML copié (navigateur) en texte tabulé, plus fiable que le texte brut. */
+function htmlTableToText(htmlStr) {
+  try {
+    const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+    const rows = [...doc.querySelectorAll('tr')];
+    if (rows.length < 2) return null;
+    return rows.map((tr) => [...tr.children].map((td) => td.textContent.replace(/\s+/g, ' ').trim()).join('\t')).join('\n');
+  } catch { return null; }
 }
 
+// Assistant « Coller mes notes » : une seule étape par écran, gros boutons, phrases simples.
 function PasteGrades({ open, onClose, cls, period }) {
+  const periods = periodsOf(cls);
+  const [step, setStep] = useState('copy'); // 'copy' | 'check' | 'done'
   const [text, setText] = useState('');
-  const [title, setTitle] = useState('');
-  const [max, setMax] = useState('20');
-  useEffect(() => { if (open) { setText(''); setTitle(''); } }, [open]);
-  const rows = useMemo(() => text.split(/\r?\n/).filter((l) => l.trim()).map((l) => {
-    const cells = l.includes('\t') ? l.split('\t') : l.split(/;|\s{2,}/);
-    let name = cells[0];
-    let grade = cells.slice(1).map((c) => c.trim()).find((c) => parseGrade(c) !== undefined && c !== '');
-    if (cells.length === 1) { const m = l.match(/^(.*?)[\s:]+(\d+(?:[.,]\d+)?|abs|disp)\s*$/i); if (m) { name = m[1]; grade = m[2]; } }
-    const st = matchStudent(cls, name);
-    return { raw: name.trim(), st, grade: parseGrade(grade) };
-  }).filter((r) => r.raw), [text, cls]);
-  const ok = rows.filter((r) => r.st && r.grade != null);
-  const doImport = () => {
-    const m = Number(String(max).replace(',', '.')) || 20;
-    updateClass(cls.id, (c) => {
-      const grades = {};
-      for (const r of ok) grades[r.st.id] = r.grade;
-      c.evals.push({ id: uid('e_'), period, title: title.trim() || 'Évaluation importée', max: m, coef: 1, date: new Date().toISOString().slice(0, 10), grades });
-    });
-    toast(`${plural(ok.length, 'note importée', 'notes importées')}`);
-    onClose();
+  const [per, setPer] = useState(period);
+  const [cols, setCols] = useState([]);
+  const [addNew, setAddNew] = useState(true);
+  const [detail, setDetail] = useState(false);
+  const [pasteErr, setPasteErr] = useState('');
+  const [result, setResult] = useState(null);
+  const areaRef = useRef();
+  useEffect(() => { if (open) { setStep('copy'); setText(''); setPer(period); setAddNew(true); setDetail(false); setPasteErr(''); } }, [open]);
+  const parsed = useMemo(() => parseGradeTable(text, cls), [text, cls]);
+
+  // Évaluations déjà présentes : même intitulé, ou mêmes notes pour presque tous les élèves.
+  const dupOf = (col, j) => cls.evals.filter((e) => e.period === per).find((e) => {
+    if (norm(e.title) === norm(col.title)) return true;
+    let same = 0, n = 0;
+    for (const r of parsed.rows) {
+      if (!r.st) continue;
+      const v = r.cells[j]?.v;
+      if (v == null || v === undefined) continue;
+      n++; if (v === e.grades?.[r.st.id]) same++;
+    }
+    return n >= 3 && same / n >= 0.8;
+  });
+  useEffect(() => {
+    setCols(parsed.columns.map((c, j) => { const d = dupOf(c, j); return { ...c, dup: d ? d.title : null, include: c.include && !d }; }));
+  }, [parsed, per]);
+
+  const receive = (t) => {
+    const r = parseGradeTable(t, cls);
+    setText(t);
+    if (!r.columns.length) { setPasteErr('Je ne trouve pas de notes dans ce que vous avez copié. Vérifiez que vous avez bien sélectionné les noms et les notes, puis recommencez.'); return; }
+    setPasteErr(''); setStep('check');
   };
-  return html`<${Dialog} open=${open} onClose=${onClose} wide title="Coller un tableau de notes" desc="Copiez deux colonnes (nom, note) depuis Pronote, École Directe ou un tableur, puis collez-les ici. Vous vérifiez avant de valider.">
-    <div class="dlg-body stack" style="--gap:14px">
-      <div class="row" style="--gap:12px;align-items:flex-end">
-        <div class="field" style="flex:3;min-width:200px"><label for="pt">Intitulé de l’évaluation</label><input id="pt" class="input" value=${title} onInput=${(e) => setTitle(e.target.value)} placeholder="Ex. Contrôle n°2"/></div>
-        <div class="field" style="flex:1;min-width:90px"><label for="pm">Sur</label><input id="pm" class="input" value=${max} onInput=${(e) => setMax(e.target.value)} inputmode="decimal"/></div></div>
-      <label class="sr-only" for="pg">Tableau collé</label>
-      <textarea id="pg" class="textarea" value=${text} onInput=${(e) => setText(e.target.value)} placeholder=${'BERNARD Inès\t15,5\nMOREAU Lucas\t11\n…'}></textarea>
-      ${rows.length > 0 && html`<div class="parse-preview"><table><thead><tr><th>Ligne collée</th><th>Élève reconnu</th><th>Note</th></tr></thead><tbody>
-        ${rows.map((r) => html`<tr><td>${r.raw}</td><td>${r.st ? html`<span style="color:var(--vert);font-weight:700">✓</span> ${fullName(r.st)}` : html`<span class="error-text">Non reconnu</span>`}</td><td class="tnum">${r.grade == null ? html`<span class="error-text">?</span>` : typeof r.grade === 'number' ? fmt2(r.grade) : r.grade}</td></tr>`)}</tbody></table></div>
-        <p class="hint">${ok.length} / ${rows.length} lignes prêtes à importer. Les lignes non reconnues seront ignorées ; vous pourrez compléter à la main.</p>`}
+  const onPaste = (e) => {
+    const h = e.clipboardData?.getData('text/html');
+    const t = (h && htmlTableToText(h)) || e.clipboardData?.getData('text/plain') || '';
+    if (!t.trim()) return;
+    e.preventDefault();
+    receive(t);
+  };
+  const pasteButton = async () => {
+    try {
+      let t = '';
+      if (navigator.clipboard?.read) {
+        try {
+          const items = await navigator.clipboard.read();
+          for (const it of items) if (it.types.includes('text/html')) { t = htmlTableToText(await (await it.getType('text/html')).text()) || ''; if (t) break; }
+        } catch {}
+      }
+      if (!t) t = await navigator.clipboard.readText();
+      if (!t.trim()) { setPasteErr('Rien n’a encore été copié. Faites l’étape 2 dans École Directe, puis revenez ici.'); return; }
+      receive(t);
+    } catch {
+      setPasteErr('Votre navigateur demande d’utiliser le clavier : appuyez sur les touches Ctrl et V en même temps (⌘ et V sur Mac).');
+      areaRef.current?.focus();
+    }
+  };
+
+  const unknown = parsed.rows.filter((r) => !r.st);
+  const active = cols.map((c, j) => ({ c, j })).filter(({ c }) => c.include);
+  const usableRow = (r) => r.st || addNew;
+  const countFor = (j) => parsed.rows.filter((r) => usableRow(r) && r.cells[j]?.v != null && r.cells[j]?.v !== undefined).length;
+  const nGrades = active.reduce((n, { j }) => n + countFor(j), 0);
+  const setCol = (j, patch) => setCols(cols.map((c, k) => (k === j ? { ...c, ...patch } : c)));
+  const show = (cell) => (cell.v == null ? '' : cell.v === undefined ? '?' : typeof cell.v === 'number' ? fmt2(cell.v) : cell.v);
+
+  const doImport = () => {
+    let created = 0;
+    updateClass(cls.id, (c) => {
+      const ids = parsed.rows.map((r) => {
+        if (r.st) return r.st.id;
+        if (!addNew) return null;
+        const p = parseStudentLine(r.name);
+        const st = newStudent(p.first, p.last);
+        c.students.push(st); created++;
+        return st.id;
+      });
+      const today = new Date().toISOString().slice(0, 10);
+      for (const { c: col, j } of active) {
+        const grades = {};
+        parsed.rows.forEach((r, i) => { const v = r.cells[j]?.v; if (ids[i] && v != null && v !== undefined && (typeof v !== 'number' || v <= col.max)) grades[ids[i]] = v; });
+        c.evals.push({ id: uid('e_'), period: per, title: col.title.trim() || 'Évaluation importée', max: Number(col.max) || 20, coef: Number(col.coef) || 1, date: today, grades });
+      }
+    });
+    setResult({ evals: active.length, grades: nGrades, created });
+    setStep('done');
+  };
+
+  const stepNo = { copy: 1, check: 2, done: 3 }[step];
+  return html`<${Dialog} open=${open} onClose=${onClose} wide title="Ajouter mes notes" className="wizard-dlg">
+    <div class="wz-steps" aria-hidden="true">${['Copier', 'Vérifier', 'Terminé'].map((l, i) => html`<span class=${i + 1 < stepNo ? 'done' : i + 1 === stepNo ? 'on' : ''}><b>${i + 1 < stepNo ? '✓' : i + 1}</b>${l}</span>`)}</div>
+
+    ${step === 'copy' && html`<div class="dlg-body wz-body" onPaste=${onPaste}>
+      <ol class="big-steps">
+        <li><span class="bs-n">1</span><div><b>Ouvrez École Directe</b> dans un autre onglet, puis le <b>carnet de notes</b> de votre classe.</div></li>
+        <li><span class="bs-n">2</span><div><b>Sélectionnez le tableau avec la souris :</b> cliquez juste avant le premier nom, gardez le bouton appuyé et descendez jusqu’à la dernière note. Puis faites un clic droit → <b>Copier</b>.</div>
+          <svg class="bs-illu" viewBox="0 0 220 90" aria-hidden="true"><rect x="1" y="1" width="218" height="88" rx="8" class="bi-bg"/><rect x="10" y="12" width="200" height="14" rx="3" class="bi-head"/>
+            ${[0, 1, 2].map((r) => html`<rect x="10" y=${32 + r * 18} width="70" height="12" rx="3" class="bi-cell"/>${[0, 1, 2, 3].map((k) => html`<rect x=${88 + k * 31} y=${32 + r * 18} width="26" height="12" rx="3" class="bi-cell"/>`)}`)}
+            <rect x="6" y="9" width="208" height="73" rx="5" class="bi-sel"/><path d="M196 70l6 17 3-7 8 7 3-3-8-7 7-3z" class="bi-cur"/></svg></li>
+        <li><span class="bs-n">3</span><div><b>Revenez ici</b> et appuyez sur le gros bouton :</div></li>
+      </ol>
+      <button class="btn btn-primary btn-xl" onClick=${pasteButton} autofocus><${Icon} name="clipboard-paste"/>Coller mes notes</button>
+      <p class="wz-alt">ou appuyez sur <span class="kbd">Ctrl</span> + <span class="kbd">V</span> (sur Mac : <span class="kbd">⌘</span> + <span class="kbd">V</span>)</p>
+      ${pasteErr && html`<div class="notice warn" role="alert"><${Icon} name="info"/><div>${pasteErr}</div></div>`}
+      <label class="sr-only" for="pg">Zone pour coller le tableau</label>
+      <textarea id="pg" ref=${areaRef} class="paste-catch" onInput=${(e) => e.target.value.trim() && receive(e.target.value)} tabindex="-1"></textarea>
+      <p class="wz-note"><${Icon} name="shield-check" size=${16}/>Vos notes restent sur votre ordinateur pour être lues ; rien n’est envoyé ailleurs.</p>
+    </div>`}
+
+    ${step === 'check' && html`<div class="dlg-body wz-body">
+      <p class="wz-lead">${active.length
+        ? html`J’ai trouvé <b>${plural(active.length, 'nouvelle évaluation', 'nouvelles évaluations')}</b> pour <b>${plural(parsed.rows.filter(usableRow).length, 'élève', 'élèves')}</b>.`
+        : html`Toutes ces notes sont <b>déjà dans Trousse</b>. Il n’y a rien de nouveau à ajouter.`}</p>
+      <div class="eval-cards">${cols.map((c, j) => c.skip ? null : html`<button class=${`eval-card ${c.include ? 'on' : ''} ${c.dup ? 'dup' : ''}`} onClick=${() => setCol(j, { include: !c.include })} aria-pressed=${c.include}>
+        <span class="ec-check" aria-hidden="true">${c.include ? '✓' : ''}</span>
+        <span class="ec-body"><b>${c.title}</b><span>${c.dup ? 'Déjà dans Trousse' : `${plural(countFor(j), 'note', 'notes')} · sur ${fmt2(c.max)}${c.coef !== 1 ? ` · coef ${fmt2(c.coef)}` : ''}`}</span></span>
+      </button>`)}</div>
+      <p class="hint" style="text-align:center">Cliquez sur une carte pour l’ajouter ou la retirer.</p>
+      ${unknown.length > 0 && html`<div class="notice"><${Icon} name="user-plus"/><div>
+        ${cls.students.length ? html`<b>${plural(unknown.length, 'élève n’est pas encore dans cette classe', 'élèves ne sont pas encore dans cette classe')}</b> : ${unknown.slice(0, 4).map((r) => r.name).join(', ')}${unknown.length > 4 ? '…' : ''}.` : html`<b>La classe est vide</b> : je vais créer les ${unknown.length} élèves du tableau.`}
+        <label class="check-row" style="margin-top:8px"><input type="checkbox" checked=${addNew} onChange=${(e) => setAddNew(e.target.checked)}/><span>Les ajouter à la classe</span></label></div></div>`}
+      <div class="row" style="justify-content:center;--gap:10px">
+        <label for="pper" class="label">Ces notes sont du</label>
+        <select id="pper" class="select" style="width:auto" value=${per} onChange=${(e) => setPer(Number(e.target.value))}>${periods.map((p) => html`<option value=${p.n}>${p.label}</option>`)}</select>
+      </div>
+      <button class="btn btn-ghost btn-sm wz-detail-btn" onClick=${() => setDetail(!detail)} aria-expanded=${detail}><${Icon} name=${detail ? 'chevron-down' : 'chevron-right'}/>${detail ? 'Masquer le détail' : 'Voir le détail des notes'}</button>
+      ${detail && html`<div class="table-wrap import-wrap"><table class="tbl import-tbl">
+        <thead><tr><th class="sticky-col">Élève</th>${cols.map((c, j) => html`<th class=${c.include ? '' : 'off'}>
+          <input class="imp-title" value=${c.title} onInput=${(e) => setCol(j, { title: e.target.value })} aria-label=${'Intitulé de la colonne ' + (j + 1)}/>
+          <span class="imp-meta">sur <input value=${c.max} onInput=${(e) => setCol(j, { max: e.target.value.replace(',', '.') })} inputmode="decimal" aria-label="Noté sur"/> · coef <input value=${c.coef} onInput=${(e) => setCol(j, { coef: e.target.value.replace(',', '.') })} inputmode="decimal" aria-label="Coefficient"/></span></th>`)}</tr></thead>
+        <tbody>${parsed.rows.map((r) => html`<tr class=${r.st ? '' : 'unk'}><td class="sticky-col">${r.st ? html`<span class="ok-dot">✓</span>${fullName(r.st)}` : html`<span class="new-tag">Nouveau</span>${r.name}`}</td>
+          ${r.cells.map((cell, j) => html`<td class=${`num ${cols[j]?.include ? '' : 'off'} ${cell.v === undefined || (typeof cell.v === 'number' && cell.v > Number(cols[j]?.max)) ? 'bad' : ''}`}>${show(cell)}</td>`)}</tr>`)}</tbody>
+      </table></div><p class="hint">Les cases en rouge sont illisibles : elles seront ignorées, vous pourrez les corriger ensuite dans le tableau des notes.</p>`}
     </div>
-    <div class="dlg-foot"><button class="btn" onClick=${onClose}>Annuler</button><button class="btn btn-primary" disabled=${!ok.length} onClick=${doImport}>Importer ${ok.length ? plural(ok.length, 'note', 'notes') : ''}</button></div>
+    <div class="dlg-foot"><button class="btn btn-lg" onClick=${() => setStep('copy')}><${Icon} name="arrow-left"/>Recommencer</button>
+      <button class="btn btn-primary btn-lg" disabled=${!active.length || !nGrades} onClick=${doImport}><${Icon} name="check"/>Ajouter ces notes</button></div>`}
+
+    ${step === 'done' && result && html`<div class="dlg-body wz-body wz-done">
+      <div class="done-ico" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-16"/></svg></div>
+      <h3>C’est fait !</h3>
+      <p>${plural(result.evals, 'évaluation ajoutée', 'évaluations ajoutées')}, ${plural(result.grades, 'note', 'notes')} en tout${result.created ? `, et ${plural(result.created, 'élève créé', 'élèves créés')}` : ''}.</p>
+      <p class="hint">La prochaine fois, recopiez simplement tout le tableau : seules les nouvelles notes seront ajoutées.</p>
+    </div>
+    <div class="dlg-foot"><button class="btn btn-primary btn-lg" onClick=${onClose}>Voir mes notes</button></div>`}
   </${Dialog}>`;
 }
