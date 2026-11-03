@@ -268,9 +268,8 @@ function GradesTab({ cls }) {
     const v = avgs[sid];
     if (v == null) return null;
     const x = Math.round(v * 100);
-    return { n: 1 + ranked.filter((y) => y > x).length, ex: ranked.filter((y) => y === x).length > 1 };
+    return 1 + ranked.filter((y) => y > x).length;
   };
-  const rankLabel = (r) => (r.n === 1 ? '1er' : `${r.n}e`) + (r.ex ? ' ex' : '');
 
   return html`<section aria-labelledby="g-title">
     <h2 id="g-title" class="sr-only">Notes</h2>
@@ -286,17 +285,17 @@ function GradesTab({ cls }) {
         <div class="row" style="justify-content:center"><button class="btn btn-primary" onClick=${() => setEvalDlg('new')}><${Icon} name="plus"/>Nouvelle évaluation</button><button class="btn" onClick=${() => setPaste(true)}><${Icon} name="clipboard-paste"/>Coller mes notes</button></div>
         <p class="hint">L’import depuis une capture d’écran arrive à la phase 3.</p></div>`
     : html`<div class="table-wrap"><table class="tbl gtbl" onKeyDown=${onKey}>
-      <thead><tr><th class="sticky-col"><span class="rank-h" title="Rang d’après la moyenne générale de la période">Rang</span>Élève</th>
+      <thead><tr><th class="sticky-col">Élève</th><th class="rank-col" title="Rang d’après la moyenne générale de la période">Rang</th>
         ${evals.map((e) => html`<th class="eval-h"><button onClick=${() => setEvalDlg(e)} title="Modifier l’évaluation"><span class="t">${e.title}</span><span class="m">/${e.max} · coef ${fmt2(e.coef)}${e.date ? ' · ' + new Date(e.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}</span></button></th>`)}
         <th class="avg-col">Moyenne /20</th></tr></thead>
       <tbody>${cls.students.map((st) => {
         const a = studentAverage(cls, st.id, period);
         const rk = rankOf(st.id);
-        return html`<tr key=${st.id}><td class="sticky-col name-cell"><span class=${`rank ${rk && rk.n <= 3 ? 'top' : ''}`} title=${rk ? `Rang ${rankLabel(rk)} sur ${ranked.length}, d’après la moyenne générale` : 'Pas encore de moyenne'}>${rk ? rankLabel(rk) : '—'}</span><span>${st.first} ${st.last}</span></td>
+        return html`<tr key=${st.id}><td class="sticky-col name-cell">${st.first} ${st.last}</td><td class="rank-col tnum" title=${rk ? `Rang ${rk} sur ${ranked.length}, d’après la moyenne générale` : 'Pas encore de moyenne'}>${rk ?? html`<span class="muted">—</span>`}</td>
           ${evals.map((e) => { const v = e.grades?.[st.id]; return html`<td class="cell"><input value=${display(v)} class=${typeof v === 'string' ? 'special' : ''} inputmode="decimal" aria-label=${`${e.title} — ${st.first} ${st.last}`} onChange=${(ev) => setGrade(e.id, st.id, ev.target.value, ev.target)} onFocus=${(ev) => ev.target.select()}/></td>`; })}
           <td class="avg-col">${a == null ? html`<span class="muted">—</span>` : html`<span class=${'grade-pill ' + tone(a)}>${fmt2(a)}</span>`}</td></tr>`;
       })}</tbody>
-      <tfoot><tr><td class="sticky-col">Moyenne de la classe</td>${evals.map((e) => html`<td>${fmt2(evalAverage(cls, e))}</td>`)}<td class="avg-col">${fmt2(avgP)}</td></tr></tfoot>
+      <tfoot><tr><td class="sticky-col">Moyenne de la classe</td><td class="rank-col"></td>${evals.map((e) => html`<td>${fmt2(evalAverage(cls, e))}</td>`)}<td class="avg-col">${fmt2(avgP)}</td></tr></tfoot>
     </table></div>
     <p class="hint" style="margin-top:10px">Astuce : tapez « abs » pour absent, « disp » pour dispensé. Ces cas ne comptent pas dans la moyenne.</p>`}
     <${EvalDialog} target=${evalDlg} onClose=${() => setEvalDlg(null)} cls=${cls} period=${period}/>

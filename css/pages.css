@@ -468,7 +468,5 @@
 .wz-dups { display: flex; gap: 8px; align-items: center; justify-content: center; color: var(--vert); font-weight: 700; }
 .name-cell { font-weight: 600; }
 .name-cell > span:last-child { vertical-align: middle; }
-.rank, .rank-h { display: inline-block; min-width: 46px; margin-right: 10px; vertical-align: middle; }
-.rank-h { font-size: .74rem; }
-.rank { text-align: center; padding: 2px 6px; border-radius: 6px; background: var(--paper-2); color: var(--ink-2); font-size: .78rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rank.top { background: var(--surligneur-soft); color: var(--ink); }
+.gtbl .rank-col { width: 64px; text-align: center; font-weight: 700; color: var(--ink-2); border-left: 1px solid var(--line); }
+.gtbl thead .rank-col { font-size: .8rem; }
