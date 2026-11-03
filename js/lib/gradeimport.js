@@ -19,8 +19,8 @@ export function readCell(raw) {
   return { v: Number(m[1].replace(',', '.')), outOf: m[2] ? Number(m[2].replace(',', '.')) : null };
 }
 // Rang d'un élève : « 1 », « 2e », « 1er », « 3e ex » (vue Éditions d'École Directe).
-const RANK = /^(\d+)\s*(er|re|e|è|ème|eme|°)?(\s*ex\.?(\s*(aequo|æquo))?)?$/i;
-const isRankLike = (c) => RANK.test(String(c || '').trim()) && /[a-zè°]/i.test(String(c));
+const RANK = /^(\d+)\s*(er|re|e|è|ème|eme|°)?(\s*ex\.?(\s*(aequo|æquo))?)?(\s*\/\s*(\d+))?$/i;
+const isRankLike = (c) => { const t = String(c || '').trim(); return RANK.test(t) && /[a-zè°/]/i.test(t) && !/[.,]/.test(t); };
 // Lignes d'en-tête qui portent un libellé : « Coef », « Sur », « Barème », « Date »…
 const META = /^(coef(ficient)?s?|sur|bar[èe]me|note sur|noté sur|date|max(imum)?)\b/i;
 const metaKind = (r, nameCols) => {
@@ -96,12 +96,21 @@ export function parseGradeTable(text, cls) {
     if (headerText(j).some((h) => /^(rang|rg\.?|classement)$/i.test(h))) return true;
     const raw = rows.map((r) => String(r.raw[j] || '').trim()).filter(Boolean);
     if (raw.length < 3) return false;
-    if (raw.filter(isRankLike).length / raw.length >= 0.6) return true;
-    if (j !== 0) return false; // un rang « nu » n'est reconnu que juste après les noms, comme dans École Directe
+    const rl = raw.filter(isRankLike);
+    if (rl.length / raw.length >= 0.6) {
+      // « 3/28 » : on vérifie que c'est bien un rang (même total partout, valeurs différentes), pas une note sur 20.
+      const totals = new Set(rl.map((x) => x.match(RANK)?.[7]).filter(Boolean));
+      if (!totals.size || /[a-zè°]/i.test(rl.join(''))) return true;
+      const tot = Number([...totals][0]);
+      const ranks = rl.map((x) => Number(x.match(RANK)[1]));
+      if (totals.size === 1 && tot >= rows.length * 0.6 && tot !== 20 && tot !== 10 && new Set(ranks).size / ranks.length >= 0.7) return true;
+    }
+    if (j > 1) return false; // un rang « nu » n'est cherché que juste après les noms, comme dans École Directe
     const nums = raw.map((x) => Number(x.match(RANK)?.[1])).filter((n) => Number.isInteger(n));
     if (nums.length < raw.length * 0.9) return false;
     const distinct = new Set(nums).size / nums.length;
-    return Math.min(...nums) === 1 && distinct >= 0.85 && Math.max(...nums) <= rows.length + 1 && !raw.some((x) => /[.,]/.test(x));
+    const hi = Math.max(...nums);
+    return Math.min(...nums) === 1 && distinct >= 0.7 && hi <= rows.length + 1 && hi >= rows.length * 0.6 && !raw.some((x) => /[.,]/.test(x));
   };
   const rankCols = new Set(Array.from({ length: width }, (_, j) => j).filter(isRankCol));
 
@@ -122,6 +131,34 @@ export function parseGradeTable(text, cls) {
     if (hi > max) max = hi <= 20 ? 20 : Math.ceil(hi);
     const title = h.replace(/\(?\s*(?:coef(?:ficient)?\.?\s*:?\s*\d+(?:[.,]\d+)?|x\s*\d+)\s*\)?/gi, '').replace(/(?:\/|sur\s*)\d+(?:[.,]\d+)?/i, '').trim();
     columns.push({ title: title || `Évaluation ${columns.filter(Boolean).length + 1}`, max, coef: mCoef ? Number(mCoef) : hCoef ? Number(hCoef.replace(',', '.')) : 1, include: !SKIP_TITLE.test(h), skip: SKIP_TITLE.test(h), invalid: rows.filter((r) => r.cells[j].v === undefined).length });
+  }
+  // Colonne de moyenne sans titre (dans la vue Éditions d'École Directe : la 1re colonne après le rang).
+  // On compare chaque colonne à la moyenne des autres notes de l'élève : si elles collent, c'est une moyenne.
+  const real = columns.map((c, j) => (c && !c.skip ? j : -1)).filter((j) => j >= 0);
+  const on20 = (j, r) => { const v = r.cells[j]?.v; return typeof v === 'number' ? (v / columns[j].max) * 20 : null; };
+  const looksLikeAverage = (j, tol, share, minOthers) => {
+    const others = real.filter((k) => k !== j);
+    if (others.length < minOthers) return false;
+    let close = 0, n = 0;
+    for (const r of rows) {
+      const v = on20(j, r);
+      if (v == null) continue;
+      let sw = 0, sum = 0;
+      for (const k of others) { const x = on20(k, r); if (x != null) { sum += x * (columns[k].coef || 1); sw += columns[k].coef || 1; } }
+      if (!sw) continue;
+      n++;
+      if (Math.abs(v - sum / sw) <= tol) close++;
+    }
+    return n >= 3 && close / n >= share;
+  };
+  const firstReal = real[0];
+  for (const j of real) {
+    const c = columns[j];
+    const untitled = /^Évaluation \d+$/.test(c.title);
+    const isFirst = j === firstReal;
+    if (untitled && ((isFirst && looksLikeAverage(j, 1.2, 0.8, 2)) || looksLikeAverage(j, 0.5, 0.9, 3))) {
+      Object.assign(c, { title: 'Moyenne générale', include: false, skip: true });
+    }
   }
   // Retire les colonnes vides en gardant l'alignement.
   const keep = columns.map((c, j) => (c ? j : -1)).filter((j) => j >= 0);

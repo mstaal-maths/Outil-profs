@@ -470,9 +470,10 @@ function PasteGrades({ open, onClose, cls, period }) {
         : html`Toutes ces notes sont <b>déjà dans Trousse</b>. Il n’y a rien de nouveau à ajouter.`}</p>
       <div class="eval-cards">${cols.map((c, j) => c.skip ? null : html`<button class=${`eval-card ${c.include ? 'on' : ''} ${c.dup ? 'dup' : ''}`} onClick=${() => setCol(j, { include: !c.include })} aria-pressed=${c.include}>
         <span class="ec-check" aria-hidden="true">${c.include ? '✓' : ''}</span>
-        <span class="ec-body"><b>${c.title}</b><span>${c.dup ? 'Déjà dans Trousse' : `${plural(countFor(j), 'note', 'notes')} · sur ${fmt2(c.max)}${c.coef !== 1 ? ` · coef ${fmt2(c.coef)}` : ''}`}</span></span>
+        <span class="ec-body"><b>${c.title}</b><span>${c.dup ? 'Déjà dans Trousse' : `${plural(countFor(j), 'note', 'notes')} · sur ${fmt2(c.max)}${c.coef !== 1 ? ` · coef ${fmt2(c.coef)}` : ''}`}</span>
+          <span class="ec-sample">${parsed.rows.map((r) => r.cells[j]).filter((x) => x && x.v != null && x.v !== undefined).slice(0, 4).map(show).join(' · ')}…</span></span>
       </button>`)}</div>
-      <p class="hint" style="text-align:center">Cliquez sur une carte pour l’ajouter ou la retirer.</p>
+      <p class="hint" style="text-align:center">Cliquez sur une carte pour l’ajouter ou la retirer. Une carte qui affiche « 1 · 2 · 3… » est sans doute le rang : retirez-la.</p>
       ${unknown.length > 0 && html`<div class="notice"><${Icon} name="user-plus"/><div>
         ${cls.students.length ? html`<b>${plural(unknown.length, 'élève n’est pas encore dans cette classe', 'élèves ne sont pas encore dans cette classe')}</b> : ${unknown.slice(0, 4).map((r) => r.name).join(', ')}${unknown.length > 4 ? '…' : ''}.` : html`<b>La classe est vide</b> : je vais créer les ${unknown.length} élèves du tableau.`}
         <label class="check-row" style="margin-top:8px"><input type="checkbox" checked=${addNew} onChange=${(e) => setAddNew(e.target.checked)}/><span>Les ajouter à la classe</span></label></div></div>`}
