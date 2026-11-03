@@ -14,7 +14,34 @@ export const PRESETS = {
   ilots: { label: 'Îlots', desc: 'Groupes de 4 ou 6 tables', icon: 'layout-grid' },
   u: { label: 'En U', desc: 'Fer à cheval, idéal pour débattre', icon: 'move' },
   examen: { label: 'Examen', desc: 'Tables individuelles espacées', icon: 'grid-3x3' },
+  libre: { label: 'Salle vide', desc: 'Vous placez tout vous-même', icon: 'pencil' },
 };
+
+// Éléments de la salle (hors tables) : dimensions par défaut en cm environ.
+export const ITEM_TYPES = {
+  board: { label: 'Tableau', w: 300, h: 20 },
+  desk: { label: 'Bureau', w: 120, h: 60 },
+  door: { label: 'Porte', w: 90, h: 14 },
+  window: { label: 'Fenêtre', w: 160, h: 10 },
+  cabinet: { label: 'Armoire', w: 110, h: 45 },
+};
+export function item(type, x, y, rot = 0, w, h) {
+  const d = ITEM_TYPES[type];
+  return { id: uid('i'), type, x, y, rot, w: w ?? d.w, h: h ?? d.h };
+}
+/** Tableau et bureau par défaut, placés devant les tables. */
+export function defaultItems(tables) {
+  const b = bounds(tables);
+  const top = Math.min(b.y, 120);
+  const cx = tables.length ? b.x + b.w / 2 : 0;
+  return [item('board', cx, top - 80), item('desk', Math.max(b.x + b.w, 200) - 60, top - 20)];
+}
+/** Les plans créés avant l'arrivée des éléments libres en reçoivent automatiquement. */
+export function ensureItems(plan) {
+  if (!plan.items) plan.items = defaultItems(plan.tables);
+  return plan;
+}
+export const boardOf = (items = []) => items.find((i) => i.type === 'board');
 
 /** Génère une salle complète à partir d'un modèle et de quelques réglages. */
 export function buildLayout(kind, o = {}) {
@@ -60,6 +87,7 @@ export function buildLayout(kind, o = {}) {
     for (let r = 0; r < rows; r++) for (let t = 0; t < perRow; t++)
       tables.push(table(-totalW / 2 + SEAT_W / 2 + t * (SEAT_W + gap), 150 + r * (SEAT_H + 44), 1, 1));
   }
+  // 'libre' : aucune table, le professeur construit sa salle.
   return tables;
 }
 
@@ -79,12 +107,13 @@ export function seatsOf(tables) {
   return out;
 }
 
-export function bounds(tables) {
-  if (!tables.length) return { x: -300, y: 0, w: 600, h: 500 };
+export function bounds(tables, items = []) {
+  const shapes = [...tables.map((t) => ({ x: t.x, y: t.y, rot: t.rot, w: t.cols * SEAT_W, h: t.rows * SEAT_H + 40 })), ...items];
+  if (!shapes.length) return { x: -300, y: 100, w: 600, h: 400 };
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const t of tables) {
+  for (const t of shapes) {
     const a = (t.rot * Math.PI) / 180;
-    const w = t.cols * SEAT_W, h = t.rows * SEAT_H;
+    const w = t.w, h = t.h;
     const ex = Math.abs(Math.cos(a)) * w / 2 + Math.abs(Math.sin(a)) * h / 2;
     const ey = Math.abs(Math.sin(a)) * w / 2 + Math.abs(Math.cos(a)) * h / 2;
     x0 = Math.min(x0, t.x - ex); x1 = Math.max(x1, t.x + ex);
@@ -114,7 +143,7 @@ export function neighbors(seats) {
  * strategy : 'random' | 'alpha' | 'hetero' (binômes de niveaux différents) | 'mix' (alterner filles/garçons)
  * Respecte : places verrouillées, « ne pas mettre ensemble », « mettre ensemble », « devant ».
  */
-export function autoPlace({ tables, students, assign = {}, locked = [], strategy = 'random', constraints, levels = {}, fillFront = true }) {
+export function autoPlace({ items = [], tables, students, assign = {}, locked = [], strategy = 'random', constraints, levels = {}, fillFront = true }) {
   const seats = seatsOf(tables);
   const nb = neighbors(seats);
   const lockedSet = new Set(locked.filter((sid) => assign[sid]));
@@ -129,10 +158,12 @@ export function autoPlace({ tables, students, assign = {}, locked = [], strategy
   } else pool = shuffle(pool);
 
   // Ordre des places : de l'avant vers l'arrière, de gauche à droite.
-  const order = free.slice().sort((a, b) => a.y - b.y || a.x - b.x);
-  const ySpan = Math.max(1, Math.max(...seats.map((s) => s.y)) - Math.min(...seats.map((s) => s.y)));
-  const yMin = Math.min(...seats.map((s) => s.y));
-  const frontness = Object.fromEntries(seats.map((s) => [s.id, (s.y - yMin) / ySpan]));
+  // « Devant » = près du tableau, où qu'il soit dans la salle.
+  const board = boardOf(items);
+  const dist = (s) => (board ? Math.hypot(s.x - board.x, s.y - board.y) : s.y);
+  const order = free.slice().sort((a, b) => dist(a) - dist(b) || a.x - b.x);
+  const dMin = Math.min(...seats.map(dist)), dSpan = Math.max(1, Math.max(...seats.map(dist)) - dMin);
+  const frontness = Object.fromEntries(seats.map((s) => [s.id, (dist(s) - dMin) / dSpan]));
 
   // Si moins d'élèves que de places : on remplit l'avant d'abord, en gardant les binômes.
   let target = order;
@@ -198,7 +229,8 @@ export function planViolations(tables, assign, constraints) {
 }
 
 export function newPlan(name = 'Salle principale', kind = 'rangees', opts) {
-  return { id: uid('p_'), name, kind, opts: opts || {}, tables: buildLayout(kind, opts || {}), assign: {}, locked: [], view: 'eleves' };
+  const tables = buildLayout(kind, opts || {});
+  return { id: uid('p_'), name, kind, opts: opts || {}, tables, items: defaultItems(tables), assign: {}, locked: [], view: 'eleves' };
 }
 
 /** Propose une salle adaptée au nombre d'élèves. */
@@ -207,5 +239,6 @@ export function suggestOpts(kind, n) {
   if (kind === 'ilots') { const size = n > 28 ? 6 : 4; return { islands: Math.max(2, Math.ceil(n / size)), islandSize: size, perLine: size === 6 ? 2 : 3 }; }
   if (kind === 'u') { const back = Math.max(3, Math.min(7, Math.round(n / 4))); return { side: Math.max(3, Math.ceil((n - back) / 2)), back }; }
   if (kind === 'examen') { const perRow = 5; return { rows: Math.max(3, Math.ceil(n / perRow)), perRow }; }
+  if (kind === 'libre') return {};
   return {};
 }

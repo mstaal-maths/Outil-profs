@@ -271,3 +271,45 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   .draw-stage .stage-bottom .btn-ghost { order: 3; }
   .timer-stage .stage-bottom .timer-go { flex: 1 1 auto; }
 }
+
+/* ---------- Plan de classe : éléments libres ---------- */
+.chair { fill: var(--paper-3); stroke: var(--line-strong); stroke-width: 1; }
+.chair-solo { fill: var(--paper-3); stroke: var(--line-strong); stroke-width: 1.2; }
+:root[data-theme='dark'] .chair, :root[data-theme='dark'] .chair-solo { fill: #2a3631; stroke: #4a5a53; }
+.it-board { fill: var(--ink); }
+:root[data-theme='dark'] .it-board { fill: #2f4a3f; stroke: #5d7c6e; stroke-width: 1.5; }
+.it-desk { fill: var(--paper-3); stroke: var(--ink-3); stroke-width: 1.4; }
+.it-door { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.4; }
+.it-swing { fill: none; stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 4 4; }
+.it-window { fill: color-mix(in srgb, var(--encre) 16%, var(--card)); stroke: var(--encre); stroke-width: 1.2; }
+.it-window-l { stroke: var(--encre); stroke-width: .8; }
+.it-cab { fill: var(--paper-3); stroke: var(--ink-3); stroke-width: 1.4; }
+.it-cab-l { stroke: var(--ink-3); stroke-width: 1; }
+.it-label { font: 700 10.5px var(--font-body); letter-spacing: .16em; fill: var(--ink-3); }
+.lb-board { fill: #fff; letter-spacing: .24em; }
+.lb-desk { fill: var(--ink-2); letter-spacing: .08em; }
+.lb-cabinet { letter-spacing: .06em; font-size: 9.5px; }
+.room-empty { font: 600 16px var(--font-body); fill: var(--ink-3); }
+.sel-ring { fill: none; stroke: var(--encre); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; animation: ringDash 12s linear infinite; }
+@keyframes ringDash { to { stroke-dashoffset: -200; } }
+.arrange .item-g, .arrange .tbl-g { cursor: grab; }
+.arrange .item-g:active, .arrange .tbl-g:active { cursor: grabbing; }
+.place .item-g { pointer-events: none; }
+.arrange .item-g:hover .it-desk, .arrange .item-g:hover .it-cab, .arrange .item-g:hover .it-door { stroke: var(--encre); }
+.tbl-g.sel .chair { stroke: var(--encre); }
+.arrange-bar { gap: 6px 8px; }
+.ab-title { margin-right: 4px; }
+.ab-group { display: inline-flex; align-items: center; gap: 6px; padding: 0 4px; }
+.ab-group b { min-width: 14px; text-align: center; }
+.arrange-bar .seg button { padding: 5px 10px; font-size: .84rem; }
+.arrange-tip { margin-top: 8px; }
+.th-empty { fill: none; stroke: var(--line-strong); stroke-width: 3; stroke-dasharray: 10 10; }
+.th-plus { stroke: var(--encre); stroke-width: 6; stroke-linecap: round; }
+@media print {
+  .chair, .chair-solo { fill: #fff; stroke: #999; }
+  .it-board { fill: #000; } .lb-board { fill: #fff; }
+  .it-desk, .it-cab { fill: #eee; stroke: #555; }
+  .it-window { fill: #eef; stroke: #555; }
+  .sel-ring, .room-empty { display: none; }
+}
+.hit { fill: transparent; } .place .hit { pointer-events: none; }
