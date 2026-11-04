@@ -422,3 +422,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 .rem-chip[aria-pressed='true'] { background: var(--encre); border-color: var(--encre); color: var(--on-encre); }
 .rem-chip.pos[aria-pressed='true'] { background: var(--vert); border-color: var(--vert); color: #fff; }
 .rem-chip.neg[aria-pressed='true'] { background: #b86a0f; border-color: #b86a0f; color: #fff; }
+.ap-ed-btn { margin: 0 2px 10px; }
+.too-long { color: var(--marge-text) !important; font-weight: 700; }
+.bm-link { display: inline-flex; align-items: center; gap: 8px; justify-self: start; width: max-content; padding: 12px 20px; border-radius: 12px; background: var(--surligneur); color: #1a1d36; font-weight: 800; font-size: 1.05rem; text-decoration: none; border: 2px dashed #b8930a; cursor: grab; box-shadow: var(--shadow); }
+.bm-link:hover { text-decoration: none; transform: translateY(-1px); }

@@ -1,6 +1,7 @@
 // Outil 5 — Appréciations de bulletin : un élève, 4 thèmes, et l'appréciation est rédigée.
 import { html, useState, useEffect, useMemo } from '../vendor/preact.js';
-import { Icon, toast } from '../ui/core.js';
+import { Icon, toast, Dialog } from '../ui/core.js';
+import { BOOKMARKLET, ED_LIMIT, payloadFor } from '../lib/edfill.js';
 import { updateClass } from '../lib/store.js';
 import { periodsOf, currentPeriod, studentAverage } from '../lib/model.js';
 import { CRITERIA, REMARKS, composeAll, resultLevel, suggestProgress } from '../lib/apprec.js';
@@ -23,6 +24,7 @@ export function AppreciationsTool({ cls }) {
   const [drafts, setDrafts] = useState({}); // modifications en cours des formulations
   const [length, setLength] = useState('complete');
   const [showAll, setShowAll] = useState(false);
+  const [edOpen, setEdOpen] = useState(false);
   const st = cls.students.find((s) => s.id === sid) || cls.students[0];
   const store = cls.apprec?.[period] || {};
   const entry = (st && store[st.id]) || {};
@@ -62,6 +64,7 @@ export function AppreciationsTool({ cls }) {
         <span class="hint tnum">${done} / ${cls.students.length} rédigées</span>
       </div>
       <div class="ap-progress" aria-hidden="true"><i style=${`width:${(done / cls.students.length) * 100}%`}></i></div>
+      <button class="btn btn-primary ap-ed-btn" onClick=${() => setEdOpen(true)} disabled=${!done}><${Icon} name="upload"/>Envoyer vers École Directe</button>
       <ul>${cls.students.map((s) => { const a = studentAverage(cls, s.id, period); const ok = !!store[s.id]?.text; return html`<li><button class=${`ap-st ${s.id === st.id ? 'on' : ''}`} onClick=${() => { setSid(s.id); setShift(0); }} aria-current=${s.id === st.id ? 'true' : undefined}>
         <span class=${`ap-dot ${ok ? 'ok' : ''}`} aria-label=${ok ? 'Appréciation rédigée' : 'À rédiger'}>${ok ? '✓' : ''}</span>
         <span class="ap-name">${fullName(s)}</span><span class="ap-avg tnum">${a == null ? '—' : fmt1(a)}</span></button></li>`; })}</ul>
@@ -93,7 +96,7 @@ export function AppreciationsTool({ cls }) {
       : !complete ? html`<div class="ap-wait"><${Icon} name="message-square-text"/><p>Choisissez un niveau pour chacun des 4 thèmes : les appréciations s’écrivent aussitôt.</p></div>`
       : html`<div class="ap-variants">
         ${variants.map((v, i) => { const t = drafts[i] ?? v; const kept = entry.text === t; return html`<div class=${`ap-variant card ${kept ? 'kept' : ''}`}>
-          <div class="row"><b>Proposition ${i + 1}</b>${kept && html`<span class="badge" style="background:var(--vert-soft);color:var(--vert)">✓ Retenue</span>`}<span class="spacer"></span><span class="hint tnum">${t.length} caractères</span></div>
+          <div class="row"><b>Proposition ${i + 1}</b>${kept && html`<span class="badge" style="background:var(--vert-soft);color:var(--vert)">✓ Retenue</span>`}<span class="spacer"></span><span class=${`hint tnum ${t.length > ED_LIMIT ? 'too-long' : ''}`}>${t.length} / ${ED_LIMIT}${t.length > ED_LIMIT ? ' — trop long pour École Directe' : ''}</span></div>
           <label class="sr-only" for=${'apv' + i}>Proposition ${i + 1}</label>
           <textarea id=${'apv' + i} class="textarea ap-text" rows="3" value=${t} onInput=${(e) => setDrafts({ ...drafts, [i]: e.target.value })}></textarea>
           <button class="btn btn-primary" onClick=${() => copy(t)}><${Icon} name="copy"/>Copier</button>
@@ -101,10 +104,42 @@ export function AppreciationsTool({ cls }) {
         <button class="btn btn-ghost" onClick=${() => setShift(shift + 1)}><${Icon} name="shuffle"/>Autres formulations</button>
       </div>`}
 
+      <${EdDialog} open=${edOpen} onClose=${() => setEdOpen(false)} cls=${cls} store=${store} done=${done} periodLabel=${periods.find((p) => p.n === period).label}/>
       <details class="ap-all card" open=${showAll} onToggle=${(e) => setShowAll(e.target.open)}>
         <summary>Toutes les appréciations retenues (${done})</summary>
         ${done === 0 ? html`<p class="hint" style="padding:10px 0">Copiez une proposition : elle est retenue et apparaît ici.</p>` : html`<ul class="ap-done">${cls.students.filter((s) => store[s.id]?.text).map((s) => html`<li><b>${fullName(s)}</b><p>${store[s.id].text}</p><button class="btn btn-sm" onClick=${async () => { await copyText(store[s.id].text); toast('Copiée.', { icon: 'copy' }); }}><${Icon} name="copy"/>Copier</button></li>`)}</ul>`}
       </details>
     </section>
   </div>`;
+}
+
+// ---------- Envoyer vers École Directe (favori magique) ----------
+function EdDialog({ open, onClose, cls, store, done, periodLabel }) {
+  const texts = Object.fromEntries(Object.entries(store).filter(([, e]) => e.text).map(([id, e]) => [id, e.text]));
+  const tooLong = Object.values(texts).filter((t) => t.length > ED_LIMIT).length;
+  const copy = async () => {
+    const ok = await copyText(payloadFor(cls.students, texts));
+    toast(ok ? `${plural(done, 'appréciation copiée', 'appréciations copiées')}. Passez à l’étape 3 dans École Directe.` : 'Copie impossible : réessayez.', { icon: ok ? 'copy' : 'info' });
+  };
+  return html`<${Dialog} open=${open} onClose=${onClose} wide title="Envoyer vers École Directe" desc=${`Remplir d’un coup ${done > 1 ? `les ${done} appréciations` : 'l’appréciation'} de la ${cls.name} (${periodLabel}).`}>
+    <div class="dlg-body">
+      <ol class="big-steps">
+        <li><span class="bs-n">1</span><div class="stack" style="--gap:8px">
+          <b>Une seule fois : installez le bouton dans vos favoris</b>
+          <span>Avec la souris, <b>faites glisser</b> ce bouton jusque dans la barre de favoris de votre navigateur (sous la barre d’adresse) :</span>
+          <a class="bm-link" href=${BOOKMARKLET} onClick=${(e) => { e.preventDefault(); toast('Ne cliquez pas : faites-le glisser dans la barre de favoris.', { icon: 'info' }); }} draggable="true">★ Remplir École Directe</a>
+          <span class="hint">Vous ne voyez pas la barre de favoris ? Appuyez sur <span class="kbd">Ctrl</span> + <span class="kbd">Maj</span> + <span class="kbd">B</span> (sur Mac <span class="kbd">⌘</span> + <span class="kbd">Maj</span> + <span class="kbd">B</span>).</span></div></li>
+        <li><span class="bs-n">2</span><div class="stack" style="--gap:8px">
+          <b>Copiez les appréciations</b>
+          <button class="btn btn-primary btn-lg" style="justify-self:start" onClick=${copy}><${Icon} name="copy"/>${done > 1 ? `Copier les ${done} appréciations` : 'Copier l’appréciation'}</button>
+          ${tooLong > 0 && html`<span class="too-long">${plural(tooLong, 'appréciation dépasse', 'appréciations dépassent')} 500 caractères : raccourcissez-les avant.</span>`}</div></li>
+        <li><span class="bs-n">3</span><div class="stack" style="--gap:6px">
+          <b>Dans École Directe</b>
+          <span>Ouvrez la page de <b>saisie des appréciations</b> de la ${cls.name}, puis cliquez sur le favori <b>★ Remplir École Directe</b>. Toutes les cases se remplissent, surlignées en jaune.</span>
+          <span>Relisez, puis cliquez sur <b>Enregistrer</b> dans École Directe.</span>
+          <span class="hint">Le navigateur peut demander l’autorisation de lire le presse-papiers : acceptez. Sinon, une petite fenêtre vous demandera de coller (Ctrl + V).</span></div></li>
+      </ol>
+      <div class="notice" style="margin-top:16px"><${Icon} name="shield-check"/><div>Le favori agit uniquement dans la page d’École Directe ouverte sur votre ordinateur, avec votre propre connexion. Il n’envoie rien et n’enregistre rien à votre place.</div></div>
+    </div>
+  </${Dialog}>`;
 }
