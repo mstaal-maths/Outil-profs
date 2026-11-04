@@ -20,12 +20,6 @@ l'objet que chaque élève et chaque prof a sur sa table, et qui contient *tous 
   compréhension (les élèves *glissent* vers leur nouvelle place). Désactivées si l'ordinateur
   demande « réduire les animations ».
 
-## Documents imprimables (phase 2)
-- Un seul modèle de document (`js/docs/engine.js`) produit l'aperçu, le PDF (pdfmake) et le Word (docx).
-- Chaque exercice est un bloc « insécable » : jamais coupé entre deux pages (PDF : `unbreakable`, Word : `keepNext`/`keepLines`, lignes de tableau `cantSplit`).
-- Corrigé toujours dans un fichier séparé. Option DYS : Arimo (métriquement identique à Arial, licence libre) 14 pt, interligne 1,5 ; dans Word, police Arial.
-- Flashcards : verso en miroir (bord long ou bord court) pour un alignement parfait en recto-verso.
-
 ## Architecture
 - Site statique (GitHub Pages), application d'une seule page, routage par `#` : aucune donnée
   d'élève dans les adresses.
@@ -35,7 +29,8 @@ l'objet que chaque élève et chaque prof a sur sa table, et qui contient *tous 
 - Hors ligne : cache Firestore local (chiffré), effacé à la déconnexion.
 
 ## Plan de développement
-1. **Phase 1** — accueil, démo, comptes, chiffrement, classes, élèves, notes, outils 1 à 4. ✅
-2. **Phase 2** — QCM, mots croisés/mêlés/textes à trous, flashcards, lexiques, jeux ; export Word et PDF, option DYS. ✅
-3. **Phase 3** — statistiques, appréciations, bilan de conseil, import de notes par capture d'écran (OCR local).
+1. **Phase 1** — accueil, démo, comptes, chiffrement, classes, élèves, notes (import École Directe), tirage, groupes, minuteur, plan de classe. ✅
+2. **Appréciations de bulletin** — dans chaque classe : un élève, 4 thèmes, 3 formulations. ✅
+   (Les générateurs de documents imprimables ont été retirés à la demande de l'auteur ; ils restent dans l'historique Git, commit `47f38f9`.)
+3. **À décider** — statistiques, bilan de conseil de classe.
 4. **Phase 4** — pages légales complètes, registre RGPD, suppression de fin d'année, sauvegarde/restauration.

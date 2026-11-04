@@ -2,7 +2,6 @@
 import { html, useState, useEffect, useMemo, useRef } from '../vendor/preact.js';
 import { Icon, Dialog, navigate, useStore, useTitle } from '../ui/core.js';
 import { classList, createClass, leaveDemo } from '../lib/store.js';
-import { TOOLS } from '../ui/shell.js';
 import { CLASS_COLORS, colorHex, classAverage, currentPeriod } from '../lib/model.js';
 import { fuzzyScore, norm, plural, fmt1, initials, relTime } from '../lib/util.js';
 
@@ -50,7 +49,6 @@ export function Dashboard() {
         <input id="dsearch" ref=${searchRef} class="input" type="search" placeholder="Rechercher une classe ou un élève…" value=${q} onInput=${(e) => setQ(e.target.value)} autocomplete="off"/></div>
       <div class="spacer"></div>
       <a class="btn" href="#/minuteur"><${Icon} name="timer"/>Minuteur</a>
-      <a class="btn" href="#/documents"><${Icon} name="file-text"/>Mes documents</a>
       <button class="btn btn-primary" onClick=${() => setCreating(true)}><${Icon} name="plus"/>Nouvelle classe</button>
     </div>`}
 
@@ -76,10 +74,6 @@ export function Dashboard() {
       ${studentHits.length > 0 && html`<div class="search-results"><h2>Élèves</h2>${studentHits.map(({ st, c }) => html`<a class="student-hit" href=${'#/classes/' + c.id}>
         <span class="class-dot" style=${`--c:${colorHex(c.color)}`}></span>${st.first} ${st.last}<span class="muted" style="margin-left:auto;font-weight:600">${c.name}</span><${Icon} name="chevron-right" size=${16}/></a>`)}</div>`}
     `}
-    <section class="dash-docs">
-      <div class="row" style="margin:40px 0 14px"><h2 class="sec-title" style="margin:0;flex:1">Créer un document à imprimer</h2><a class="btn btn-ghost btn-sm" href="#/documents">Mes documents<${Icon} name="arrow-right"/></a></div>
-      <div class="doc-tools">${TOOLS.filter((t) => t.doc).map((t) => html`<a class="doc-tool" href=${'#/documents/nouveau/' + t.id}><span class="dt-ico"><${Icon} name=${t.icon}/></span><b>${t.name}</b><span>${t.desc}</span></a>`)}</div>
-    </section>
     <${NewClassDialog} open=${creating} onClose=${() => setCreating(false)}/>
   </main>`;
 }

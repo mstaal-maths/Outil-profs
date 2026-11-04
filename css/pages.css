@@ -470,4 +470,13 @@
 .name-cell > span:last-child { vertical-align: middle; }
 .gtbl .rank-col { width: 64px; text-align: center; font-weight: 700; color: var(--ink-2); border-left: 1px solid var(--line); }
 .gtbl thead .rank-col { font-size: .8rem; }
-.big-steps li > div { min-width: 0; }
+.bento-card.big.b-appreciations { grid-column: 1 / -1; grid-template-columns: 1.2fr 1fr; }
+.art-apprec { display: grid; gap: 14px; padding: 22px; width: 100%; }
+.aa-crit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.aa-crit span { display: grid; gap: 5px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: .74rem; grid-template-columns: repeat(4, 1fr); }
+.aa-crit b { grid-column: 1 / -1; font-size: .74rem; }
+.aa-crit i { height: 7px; border-radius: 3px; background: var(--paper-3); transition: background .3s calc(var(--k, 0) * 60ms); }
+.aa-crit i.on { background: var(--encre); }
+.art-apprec p { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-family: var(--font-display); font-style: italic; font-size: 1.02rem; line-height: 1.5; box-shadow: var(--shadow-sm); transition: transform .5s var(--ease); }
+.bento-card:hover .art-apprec p { transform: translateY(-4px); }
+@media (max-width: 760px) { .bento-card.big.b-appreciations { grid-template-columns: 1fr; } .aa-crit { grid-template-columns: repeat(2, 1fr); } }

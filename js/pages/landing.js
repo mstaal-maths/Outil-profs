@@ -214,9 +214,7 @@ export function Landing() {
             <div class="bento-text"><span class="bento-ico"><${Icon} name=${t.icon}/></span><h3>${t.name}</h3><p>${t.desc}</p>
             <span class="bento-try">Essayer<${Icon} name="arrow-right"/></span></div>
           </a>`)}
-          ${later.map((t, i) => t.live ? html`<a class="bento-card small live reveal" style=${`--d:${i * 40}ms`} href=${'#/demo/doc/' + t.id}>
-            <span class="bento-ico"><${Icon} name=${t.icon}/></span><div><h3>${t.name}</h3><p>${t.desc}</p></div><span class="badge">PDF · Word</span></a>`
-          : html`<div class="bento-card small reveal" style=${`--d:${i * 40}ms`}>
+          ${later.map((t, i) => html`<div class="bento-card small reveal" style=${`--d:${i * 40}ms`}>
             <span class="bento-ico"><${Icon} name=${t.icon}/></span><div><h3>${t.name}</h3><p>${t.desc}</p></div><span class="badge badge-soon">Bientôt</span></div>`)}
         </div>
       </section>
@@ -277,5 +275,7 @@ const BentoArt = {
   tirage: () => html`<div class="art-draw"><span>Hugo</span><span>Lina</span><span class="on">Sacha<svg viewBox="0 0 200 80" class="red-circle static"><path d="M30 46c-2-18 40-30 82-28 40 2 66 12 62 28-4 18-52 24-92 20-34-3-54-10-50-24 2-8 14-14 30-17"/></svg></span><span>Emma</span><span>Théo</span></div>`,
   groupes: () => html`<div class="art-groups">${[['Inès', 'Noah', 'Léa'], ['Adam', 'Jade', 'Rayan'], ['Zoé', 'Hugo', 'Lina']].map((g, i) => html`<div class="ag" style=${`--i:${i}`}><b>Groupe ${i + 1}</b>${g.map((n) => html`<span>${n}</span>`)}</div>`)}</div>`,
   minuteur: () => html`<div class="art-timer"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" class="ring-bg"/><circle cx="60" cy="60" r="50" class="ring-fg"/></svg><span class="tnum">05:00</span></div>`,
+  appreciations: () => html`<div class="art-apprec"><div class="aa-crit">${[['Travail', 3], ['Attitude', 2], ['Oral', 1], ['Progrès', 2]].map(([l, v]) => html`<span><b>${l}</b>${[0, 1, 2, 3].map((k) => html`<i class=${k <= v ? 'on' : ''}></i>`)}</span>`)}</div>
+    <p>« Inès fournit un travail sérieux et régulier. Elle participe volontiers à l’oral. Les progrès sont encourageants : c’est un bon trimestre. »</p></div>`,
   plan: () => html`<div class="art-plan">${Array.from({ length: 12 }, (_, i) => html`<span class=${i === 4 || i === 9 ? 'on' : ''}></span>`)}</div>`,
 };

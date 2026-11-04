@@ -1,0 +1,103 @@
+// Outil 5 — Appréciations de bulletin : un élève, 4 thèmes, et l'appréciation est rédigée.
+import { html, useState, useEffect, useMemo } from '../vendor/preact.js';
+import { Icon, toast } from '../ui/core.js';
+import { updateClass } from '../lib/store.js';
+import { periodsOf, currentPeriod, studentAverage } from '../lib/model.js';
+import { CRITERIA, composeAll, resultLevel, suggestProgress } from '../lib/apprec.js';
+import { fmt1, fullName, plural } from '../lib/util.js';
+
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch {}
+    ta.remove(); return ok;
+  }
+}
+
+export function AppreciationsTool({ cls }) {
+  const periods = periodsOf(cls);
+  const [period, setPeriod] = useState(() => Math.min(currentPeriod(cls), periods.length));
+  const [sid, setSid] = useState(cls.students[0]?.id);
+  const [shift, setShift] = useState(0);
+  const [drafts, setDrafts] = useState({}); // modifications en cours des formulations
+  const [length, setLength] = useState('complete');
+  const [showAll, setShowAll] = useState(false);
+  const st = cls.students.find((s) => s.id === sid) || cls.students[0];
+  const store = cls.apprec?.[period] || {};
+  const entry = (st && store[st.id]) || {};
+  const avg = st ? studentAverage(cls, st.id, period) : null;
+  const sugg = st ? suggestProgress(cls, st.id, period) : null;
+  const lv = { travail: null, attitude: null, oral: null, prog: sugg ? sugg.level : null, ...(entry.lv || {}) };
+  const withResults = entry.results ?? avg != null;
+  const complete = CRITERIA.every((c) => lv[c.id] != null);
+  const periodWord = cls.periodMode === 'semestre' ? 'semestre' : 'trimestre';
+  const variants = useMemo(() => (st && complete && st.g ? composeAll(st, lv, { results: withResults ? resultLevel(avg) : null, length, periodWord, shift }) : []), [st?.id, st?.g, JSON.stringify(lv), withResults, length, shift, avg]);
+  useEffect(() => { setDrafts({}); }, [st?.id, JSON.stringify(lv), length, shift, withResults]);
+
+  const save = (patch) => updateClass(cls.id, (c) => {
+    c.apprec = c.apprec || {};
+    c.apprec[period] = c.apprec[period] || {};
+    c.apprec[period][st.id] = { ...(c.apprec[period][st.id] || {}), ...patch };
+  });
+  const setLv = (id, v) => save({ lv: { ...lv, [id]: v } });
+  const setG = (g) => updateClass(cls.id, (c) => { const s = c.students.find((x) => x.id === st.id); if (s) s.g = g; });
+  const idx = cls.students.findIndex((s) => s.id === st?.id);
+  const next = () => { const n = cls.students[idx + 1]; if (n) { setSid(n.id); setShift(0); document.querySelector('.ap-main')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+  const copy = async (text) => {
+    const ok = await copyText(text);
+    save({ text });
+    toast(ok ? `Appréciation de ${st.first} copiée : collez-la dans École Directe (Ctrl + V).` : 'Copie impossible : sélectionnez le texte puis Ctrl + C.', { icon: ok ? 'copy' : 'info' });
+  };
+  const done = cls.students.filter((s) => store[s.id]?.text).length;
+
+  if (!cls.students.length) return html`<div class="empty"><h3>Ajoutez d’abord vos élèves</h3><p>Les appréciations se rédigent élève par élève.</p><a class="btn btn-primary" href=${`#/classes/${cls.id}`}>Ajouter des élèves</a></div>`;
+
+  return html`<div class="ap-layout">
+    <aside class="ap-list card" aria-label="Élèves">
+      <div class="ap-list-head">
+        <div class="seg seg-wrap" role="tablist" aria-label="Période">${periods.map((p) => html`<button role="tab" aria-selected=${p.n === period} onClick=${() => setPeriod(p.n)}>${p.short}</button>`)}</div>
+        <span class="hint tnum">${done} / ${cls.students.length} rédigées</span>
+      </div>
+      <div class="ap-progress" aria-hidden="true"><i style=${`width:${(done / cls.students.length) * 100}%`}></i></div>
+      <ul>${cls.students.map((s) => { const a = studentAverage(cls, s.id, period); const ok = !!store[s.id]?.text; return html`<li><button class=${`ap-st ${s.id === st.id ? 'on' : ''}`} onClick=${() => { setSid(s.id); setShift(0); }} aria-current=${s.id === st.id ? 'true' : undefined}>
+        <span class=${`ap-dot ${ok ? 'ok' : ''}`} aria-label=${ok ? 'Appréciation rédigée' : 'À rédiger'}>${ok ? '✓' : ''}</span>
+        <span class="ap-name">${fullName(s)}</span><span class="ap-avg tnum">${a == null ? '—' : fmt1(a)}</span></button></li>`; })}</ul>
+    </aside>
+
+    <section class="ap-main" aria-label=${'Appréciation de ' + fullName(st)}>
+      <div class="ap-head card">
+        <div style="flex:1;min-width:200px"><p class="eyebrow">${periods.find((p) => p.n === period).label}</p><h2>${fullName(st)}</h2>
+          <p class="hint">${avg == null ? 'Pas encore de note sur cette période.' : html`Moyenne : <b class="tnum">${fmt1(avg)}</b>${sugg ? html` · ${sugg.delta >= 0 ? '+' : '−'}${fmt1(Math.abs(sugg.delta))} depuis le ${sugg.from}` : ''}`}</p></div>
+        <div class="field"><span class="label">Accord</span><div class="seg" role="group" aria-label="Accord"><button aria-pressed=${st.g === 'f'} onClick=${() => setG('f')}>Elle</button><button aria-pressed=${st.g === 'm'} onClick=${() => setG('m')}>Il</button></div></div>
+        <button class="btn btn-primary btn-lg" onClick=${next} disabled=${idx >= cls.students.length - 1}>Élève suivant<${Icon} name="arrow-right"/></button>
+      </div>
+
+      <div class="ap-crit card">
+        ${CRITERIA.map((c) => html`<div class="crit-row"><span class="crit-label">${c.label}${c.id === 'prog' && sugg && lv.prog === sugg.level && entry.lv?.prog == null ? html`<small>proposé d’après les notes</small>` : ''}</span>
+          <div class="crit-levels" role="radiogroup" aria-label=${c.label}>${c.levels.map((l, k) => html`<button role="radio" aria-checked=${lv[c.id] === k} class=${`lvl l${k}`} onClick=${() => setLv(c.id, k)}>${l}</button>`)}</div></div>`)}
+        <div class="row ap-opts" style="--gap:16px">
+          <label class="switch"><input type="checkbox" checked=${withResults} disabled=${avg == null} onChange=${(e) => save({ results: e.target.checked })}/>Parler des résultats</label>
+          <div class="seg" role="group" aria-label="Longueur"><button aria-pressed=${length === 'courte'} onClick=${() => setLength('courte')}>Courte</button><button aria-pressed=${length === 'complete'} onClick=${() => setLength('complete')}>Complète</button></div>
+        </div>
+      </div>
+
+      ${!st.g ? html`<div class="notice"><${Icon} name="info"/><div>Choisissez <b>Elle</b> ou <b>Il</b> ci-dessus pour que les accords soient justes.</div></div>`
+      : !complete ? html`<div class="ap-wait"><${Icon} name="message-square-text"/><p>Choisissez un niveau pour chacun des 4 thèmes : les appréciations s’écrivent aussitôt.</p></div>`
+      : html`<div class="ap-variants">
+        ${variants.map((v, i) => { const t = drafts[i] ?? v; const kept = entry.text === t; return html`<div class=${`ap-variant card ${kept ? 'kept' : ''}`}>
+          <div class="row"><b>Proposition ${i + 1}</b>${kept && html`<span class="badge" style="background:var(--vert-soft);color:var(--vert)">✓ Retenue</span>`}<span class="spacer"></span><span class="hint tnum">${t.length} caractères</span></div>
+          <label class="sr-only" for=${'apv' + i}>Proposition ${i + 1}</label>
+          <textarea id=${'apv' + i} class="textarea ap-text" rows="3" value=${t} onInput=${(e) => setDrafts({ ...drafts, [i]: e.target.value })}></textarea>
+          <button class="btn btn-primary" onClick=${() => copy(t)}><${Icon} name="copy"/>Copier</button>
+        </div>`; })}
+        <button class="btn btn-ghost" onClick=${() => setShift(shift + 1)}><${Icon} name="shuffle"/>Autres formulations</button>
+      </div>`}
+
+      <details class="ap-all card" open=${showAll} onToggle=${(e) => setShowAll(e.target.open)}>
+        <summary>Toutes les appréciations retenues (${done})</summary>
+        ${done === 0 ? html`<p class="hint" style="padding:10px 0">Copiez une proposition : elle est retenue et apparaît ici.</p>` : html`<ul class="ap-done">${cls.students.filter((s) => store[s.id]?.text).map((s) => html`<li><b>${fullName(s)}</b><p>${store[s.id].text}</p><button class="btn btn-sm" onClick=${async () => { await copyText(store[s.id].text); toast('Copiée.', { icon: 'copy' }); }}><${Icon} name="copy"/>Copier</button></li>`)}</ul>`}
+      </details>
+    </section>
+  </div>`;
+}
