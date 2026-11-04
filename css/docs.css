@@ -95,3 +95,27 @@ details.opts summary { cursor: pointer; font-weight: 700; }
 .dv-pagebreak { display: flex; align-items: center; gap: 10px; color: #999; font-size: .78em; margin: 14px 0; text-transform: uppercase; letter-spacing: .12em; }
 .dv-pagebreak::before, .dv-pagebreak::after { content: ''; flex: 1; border-top: 1px dashed #bbb; }
 .dv-card small.strong { color: #111; font-size: .95em; font-weight: 700; }
+
+/* ---------- Génération automatique & IA ---------- */
+.gen-banner { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 14px 16px; border-radius: var(--r-lg); background: linear-gradient(135deg, var(--encre-soft), var(--surligneur-soft)); border: 1px solid var(--encre-soft); }
+.gen-banner div { flex: 1; min-width: 200px; display: grid; gap: 2px; }
+.gen-banner span { color: var(--ink-2); font-size: .9rem; }
+.gen-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gen-tab { display: flex; gap: 10px; align-items: center; text-align: left; padding: 12px; border: 2px solid var(--line); border-radius: var(--r-lg); background: var(--card); color: var(--ink); cursor: pointer; transition: border-color .2s, background .2s; }
+.gen-tab svg { width: 22px; height: 22px; color: var(--encre); flex: none; }
+.gen-tab b { display: block; font-size: .95rem; }
+.gen-tab small { color: var(--ink-3); font-size: .8rem; font-weight: 600; }
+.gen-tab[aria-selected='true'] { border-color: var(--encre); background: var(--encre-softer); }
+.ai-panel .big-steps { gap: 20px; }
+.ai-panel .big-steps b { font-size: 1.05rem; }
+.ai-sites { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-prompt summary { cursor: pointer; font-size: .86rem; font-weight: 600; color: var(--ink-3); }
+.ai-prompt pre { white-space: pre-wrap; font-size: .8rem; background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 180px; overflow: auto; margin: 8px 0 0; }
+.ai-foot { display: flex; justify-content: flex-end; }
+.ok-text { color: var(--vert); font-weight: 700; }
+.pulse-hint { animation: pulseBorder 1.6s var(--ease-in-out) infinite; }
+@keyframes pulseBorder { 50% { border-color: var(--encre); box-shadow: var(--ring); } }
+.ai-btn { justify-self: start; }
+.math-kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.math-kind { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+@media (max-width: 760px) { .gen-tabs { grid-template-columns: 1fr; } }

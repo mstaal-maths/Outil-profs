@@ -470,3 +470,4 @@
 .name-cell > span:last-child { vertical-align: middle; }
 .gtbl .rank-col { width: 64px; text-align: center; font-weight: 700; color: var(--ink-2); border-left: 1px solid var(--line); }
 .gtbl thead .rank-col { font-size: .8rem; }
+.big-steps li > div { min-width: 0; }

@@ -3,6 +3,7 @@ import { html, useState } from '../vendor/preact.js';
 import { Icon, Dialog } from '../ui/core.js';
 import { uid, plural } from '../lib/util.js';
 import { seeded } from '../lib/util.js';
+import { AiDialog, QuizGenerator } from './assist.js';
 import { parsePairs, crossword, wordSearch, clozeRuns, gooseBoard, defaultSpecials, dominoSheets, chainCards, gridWord, sShuffle } from './generators.js';
 
 const rint = () => Math.floor(Math.random() * 1e9);
@@ -25,6 +26,15 @@ export function Check({ label, checked, onChange }) {
   return html`<label class="switch"><input type="checkbox" checked=${checked} onChange=${(e) => onChange(e.target.checked)}/>${label}</label>`;
 }
 
+/** Bouton « Remplir avec une IA » : ouvre l'assistant puis remplit le champ. */
+export function AiButton({ kind, count, onResult }) {
+  const [open, setOpen] = useState(false);
+  return html`<button type="button" class="btn ai-btn" onClick=${() => setOpen(true)}><${Icon} name="sparkles"/>Remplir avec une IA</button>
+    <${AiDialog} open=${open} onClose=${() => setOpen(false)} kind=${kind} count=${count} onResult=${onResult}/>`;
+}
+const countPairs = (t) => parsePairs(t).filter((e) => e.a && e.b).length;
+const appendTo = (old, add) => ((old || '').trim() ? old.trim() + '\n' + add : add);
+
 // ======================================================================
 // 5. QCM & quiz
 // ======================================================================
@@ -33,9 +43,14 @@ const newQ = (type = 'qcm') => ({ id: uid('q'), type, text: '', points: 1, lines
 
 /** Format rapide : une question par paragraphe, bonnes réponses précédées de *. */
 export function parseQuiz(text) {
-  return text.split(/\n\s*\n/).map((blk) => lines(blk)).filter((l) => l.length).map((l) => {
-    const q = l[0].replace(/^\d+\s*[.)-]\s*/, '');
-    const ch = l.slice(1).map((c) => ({ ok: /^\*/.test(c), text: c.replace(/^\*\s*/, '').replace(/^[-–•]\s*|^[a-h]\)\s*/i, '') }));
+  // Les phrases d'introduction ou de conclusion d'une IA (« Voici votre QCM : ») ne sont pas des questions.
+  const chatter = (l) => l.length === 1 && (/[:!]\s*$/.test(l[0]) || /^(voici|bien sûr|bien sur|d'accord|d’accord|j'espère|j’espère|n'hésite|n’hésite|bonne|voilà|ce qcm|ces questions)/i.test(l[0].replace(/\*\*/g, '')));
+  return (text || '').replace(/```[a-z]*/gi, '').split(/\n\s*\n/).map((blk) => lines(blk)).filter((l) => l.length && !chatter(l)).map((l) => {
+    const q = l[0].replace(/^(question\s*)?\d+\s*[.):-]\s*/i, '').replace(/\*\*/g, '');
+    const rest = l.slice(1).map((c) => c.replace(/\*\*/g, ''));
+    const ans = rest.find((c) => /^r[ée]ponse\s*(attendue)?\s*:/i.test(c));
+    if (ans && rest.length === 1) return { ...newQ('court'), text: q, answer: ans.replace(/^r[ée]ponse\s*(attendue)?\s*:\s*/i, '') };
+    const ch = rest.filter((c) => c !== ans).map((c) => { const t = c.replace(/^[-–•]\s*/, ''); return { ok: /^\*/.test(t), text: t.replace(/^\*\s*/, '').replace(/^[a-h]\s*[).]\s*/i, '').replace(/\s*\*$/, '') }; });
     if (!ch.length) return { ...newQ('court'), text: q };
     if (ch.length === 2 && ch.every((c) => /^(vrai|faux)$/i.test(c.text))) return { ...newQ('vf'), text: q, choices: ch };
     return { ...newQ('qcm'), text: q, choices: ch.some((c) => c.ok) ? ch : ch.map((c, i) => ({ ...c, ok: i === 0 })) };
@@ -103,10 +118,15 @@ Explique pourquoi il fait jour d'un côté de la Terre et nuit de l'autre.`).map
 
 function QcmEditor({ d, set }) {
   const [paste, setPaste] = useState(false);
+  const [gen, setGen] = useState(false);
+  const addQs = (qs) => set({ questions: [...d.questions.filter((q) => q.text.trim()), ...qs] });
   const [txt, setTxt] = useState('');
   const upQ = (i, patch) => set({ questions: d.questions.map((q, k) => (k === i ? { ...q, ...patch } : q)) });
   const move = (i, dir) => { const a = d.questions.slice(); const j = i + dir; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; set({ questions: a }); };
   return html`<div class="stack" style="--gap:16px">
+    <div class="gen-banner"><div><b>Pas le temps d’écrire les questions ?</b><span>Une IA, votre liste de vocabulaire ou un générateur de calcul les crée pour vous.</span></div>
+      <button class="btn btn-primary" onClick=${() => setGen(true)}><${Icon} name="sparkles"/>Générer les questions</button></div>
+    <${QuizGenerator} open=${gen} onClose=${() => setGen(false)} onAdd=${addQs} parseQuiz=${parseQuiz}/>
     <${TextIn} id="dq-t" label="Titre" value=${d.title} onInput=${(v) => set({ title: v })}/>
     <${TextIn} id="dq-s" label="Sous-titre" value=${d.subtitle} onInput=${(v) => set({ subtitle: v })} placeholder="Ex. Histoire · 4e · 20 minutes"/>
     <div class="q-list">${d.questions.map((q, i) => html`<div class="q-card" key=${q.id}>
@@ -211,12 +231,14 @@ Monologue : Un personnage parle seul`,
       <${TextIn} id="dm-t" label="Titre" value=${d.title} onInput=${(v) => set({ title: v })}/>
       <${TextIn} id="dm-s" label="Sous-titre" value=${d.subtitle} onInput=${(v) => set({ subtitle: v })} placeholder="Ex. Français · 5e"/>
       ${d.mode === 'croises' && html`<${Area} id="dm-p" label="Mots et définitions" rows=${10} value=${d.pairs} onInput=${(v) => set({ pairs: v })} placeholder=${'Un mot par ligne, puis deux-points et sa définition :\nScène : Partie du théâtre où jouent les acteurs\nRideau : Il se lève au début de la pièce'} hint=${`${plural(parsePairs(d.pairs).filter((e) => e.a && e.b).length, 'mot', 'mots')}. Les accents et espaces sont retirés dans la grille.`}/>
-        <button class="btn" onClick=${() => set({ seed: rint() })}><${Icon} name="shuffle"/>Nouvelle grille</button>`}
+        <div class="row" style="--gap:8px"><${AiButton} kind="croises" count=${countPairs} onResult=${(t) => set({ pairs: appendTo(d.pairs, t) })}/><button class="btn" onClick=${() => set({ seed: rint() })}><${Icon} name="shuffle"/>Nouvelle grille</button></div>`}
       ${d.mode === 'meles' && html`<${Area} id="dm-w" label="Mots à cacher" rows=${8} value=${d.words} onInput=${(v) => set({ words: v })} placeholder=${'Un mot par ligne'} hint=${plural(lines(d.words).length, 'mot', 'mots')}/>
+        <${AiButton} kind="meles" count=${(t) => lines(t).length} onResult=${(t) => set({ words: appendTo(d.words, lines(t).map((w) => w.replace(/^[-•\d.)\s]+/, '')).join('\n')) })}/>
         <${Seg} label="Difficulté" value=${d.level} options=${[['facile', 'Facile (→ ↓)'], ['moyen', 'Moyen (+ diagonales)'], ['difficile', 'Difficile (+ à l’envers)']]} onChange=${(v) => set({ level: v })}/>
         <button class="btn" onClick=${() => set({ seed: rint() })}><${Icon} name="shuffle"/>Nouvelle grille</button>`}
       ${d.mode === 'trous' && html`<${Area} id="dm-x" label="Texte" rows=${10} value=${d.text} onInput=${(v) => set({ text: v })} placeholder="Collez votre texte et mettez entre [crochets] les mots à faire trouver." hint="Astuce : sélectionnez un mot puis cliquez sur le bouton ci-dessous."/>
         <button class="btn" onClick=${() => { const ta = document.getElementById('dm-x'); const a = ta.selectionStart, b = ta.selectionEnd; if (a === b) return; set({ text: d.text.slice(0, a) + '[' + d.text.slice(a, b) + ']' + d.text.slice(b) }); }}><${Icon} name="pencil"/>Transformer la sélection en trou</button>
+        <${AiButton} kind="trous" count=${(t) => (t.match(/\[[^\]]+\]/g) || []).length} onResult=${(t) => set({ text: t })}/>
         <${Check} label="Donner la liste des mots (dans le désordre)" checked=${d.bank} onChange=${(v) => set({ bank: v })}/>`}
       <${Check} label="Cadre Nom / Prénom / Classe" checked=${d.fields} onChange=${(v) => set({ fields: v })}/>
     </div>`;
@@ -265,6 +287,7 @@ to know : knew – known` }),
     return html`<div class="stack" style="--gap:16px">
       <${TextIn} id="df-t" label="Titre (écrit en petit sur chaque carte)" value=${d.title} onInput=${(v) => set({ title: v })}/>
       <${Area} id="df-p" label="Cartes : recto : verso" rows=${12} value=${d.pairs} onInput=${(v) => set({ pairs: v })} placeholder=${'Une carte par ligne :\nCapitale de l’Espagne : Madrid\nH₂O : eau'} hint=${plural(n, 'carte', 'cartes')}/>
+      <${AiButton} kind="flashcards" count=${countPairs} onResult=${(t) => set({ pairs: appendTo(d.pairs, t) })}/>
       <${Seg} label="Cartes par page" value=${d.per} options=${[[8, '8 (grandes)'], [10, '10'], [12, '12 (petites)']]} onChange=${(v) => set({ per: v })}/>
       <${Seg} label="Impression recto-verso" value=${d.duplex} options=${[['long', 'Bord long (le plus courant)'], ['short', 'Bord court']]} onChange=${(v) => set({ duplex: v })}/>
       <${Check} label="Rappeler le titre sur chaque carte" checked=${d.showTitle} onChange=${(v) => set({ showTitle: v })}/>
@@ -312,6 +335,7 @@ Bocage : Paysage de champs entourés de haies : On trouve du bocage en Normandie
       <${TextIn} id="dl-t" label="Titre" value=${d.title} onInput=${(v) => set({ title: v })}/>
       <${TextIn} id="dl-s" label="Sous-titre" value=${d.subtitle} onInput=${(v) => set({ subtitle: v })} placeholder="Ex. SVT · 5e · Chapitre 3"/>
       <${Area} id="dl-r" label="Mot : définition : exemple (facultatif)" rows=${12} value=${d.rows} onInput=${(v) => set({ rows: v })} placeholder=${'Un mot par ligne :\nCellule : Plus petite unité du vivant : Le corps humain compte des milliards de cellules.'} hint=${plural(parseLex(d.rows).length, 'mot', 'mots')}/>
+      <${AiButton} kind="lexique" count=${(t) => parseLex(t).length} onResult=${(t) => set({ rows: appendTo(d.rows, t) })}/>
       <${Check} label="Afficher la colonne Exemple" checked=${d.showEx} onChange=${(v) => set({ showEx: v })}/>
       <${Seg} label="Version élève" value=${d.exercise} options=${[['aucun', 'Fiche complète'], ['definitions', 'Définitions à compléter'], ['termes', 'Mots à retrouver']]} onChange=${(v) => set({ exercise: v })}/>
       ${d.exercise !== 'aucun' && html`<${Check} label="Donner les réponses dans le désordre" checked=${d.bank} onChange=${(v) => set({ bank: v })}/>`}
@@ -368,6 +392,7 @@ export const jeux = {
       <${Seg} label="Jeu" value=${d.kind} options=${[['oie', 'Jeu de l’oie'], ['dominos', 'Dominos'], ['chaine', 'J’ai… Qui a… ?']]} onChange=${(v) => set({ kind: v })}/>
       <${TextIn} id="dj-t" label="Titre" value=${d.title} onInput=${(v) => set({ title: v })}/>
       <${Area} id="dj-p" label="Questions : réponses" rows=${12} value=${d.pairs} onInput=${(v) => set({ pairs: v })} placeholder=${'Une question par ligne :\n7 × 8 : 56\nCapitale du Portugal : Lisbonne'} hint=${plural(n, 'question', 'questions')}/>
+      <${AiButton} kind="jeux" count=${countPairs} onResult=${(t) => set({ pairs: appendTo(d.pairs, t) })}/>
       ${d.kind === 'oie' && html`<${Seg} label="Nombre de cases" value=${d.cases} options=${[[24, '24'], [32, '32'], [40, '40'], [48, '48']]} onChange=${(v) => set({ cases: v })}/>`}
       ${d.kind !== 'oie' && html`<button class="btn" onClick=${() => set({ seed: rint() })}><${Icon} name="shuffle"/>Mélanger à nouveau</button>`}
       <p class="hint">${{ oie: 'Plateau + cartes questions à découper. Les réponses sont dans le corrigé.', dominos: 'Chaque domino porte une réponse et une question : la chaîne se referme sur elle-même.', chaine: 'Distribuez une carte par élève. Celui qui a la carte de départ lit sa question, celui qui a la réponse enchaîne…' }[d.kind]}</p>
