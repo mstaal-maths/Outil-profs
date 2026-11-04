@@ -32,5 +32,5 @@ l'objet que chaque élève et chaque prof a sur sa table, et qui contient *tous 
 1. **Phase 1** — accueil, démo, comptes, chiffrement, classes, élèves, notes (import École Directe), tirage, groupes, minuteur, plan de classe. ✅
 2. **Appréciations de bulletin** — dans chaque classe : un élève, 4 thèmes, 3 formulations. ✅
    (Les générateurs de documents imprimables ont été retirés à la demande de l'auteur ; ils restent dans l'historique Git, commit `47f38f9`.)
-3. **À décider** — statistiques, bilan de conseil de classe.
+3. **Mis de côté pour l’instant** — statistiques d’une évaluation, bilan de conseil de classe, import par capture d’écran (remplacé par le copier-coller École Directe).
 4. **Phase 4** — pages légales complètes, registre RGPD, suppression de fin d'année, sauvegarde/restauration.
