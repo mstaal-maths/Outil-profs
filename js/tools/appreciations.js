@@ -33,9 +33,8 @@ export function AppreciationsTool({ cls }) {
   const complete = CRITERIA.every((c) => lv[c.id] != null);
   const periodWord = cls.periodMode === 'semestre' ? 'semestre' : 'trimestre';
   const remarks = entry.remarks || [];
-  const note = entry.note || '';
-  const variants = useMemo(() => (st && complete && st.g ? composeAll(st, lv, { results: withResults ? resultLevel(avg) : null, length, periodWord, shift, remarks, note }) : []), [st?.id, st?.g, JSON.stringify(lv), withResults, length, shift, avg, remarks.join(), note]);
-  useEffect(() => { setDrafts({}); }, [st?.id, JSON.stringify(lv), length, shift, withResults, remarks.join(), note]);
+  const variants = useMemo(() => (st && complete && st.g ? composeAll(st, lv, { results: withResults ? resultLevel(avg) : null, length, periodWord, shift, remarks }) : []), [st?.id, st?.g, JSON.stringify(lv), withResults, length, shift, avg, remarks.join()]);
+  useEffect(() => { setDrafts({}); }, [st?.id, JSON.stringify(lv), length, shift, withResults, remarks.join()]);
   const toggleRemark = (id) => save({ remarks: remarks.includes(id) ? remarks.filter((x) => x !== id) : [...remarks, id] });
 
   const save = (patch) => updateClass(cls.id, (c) => {
@@ -86,11 +85,8 @@ export function AppreciationsTool({ cls }) {
       </div>
 
       <div class="ap-remarks card">
-        <div><b>Ajouter une remarque</b> <span class="muted">(facultatif)</span><p class="hint">Un clic ajoute une phrase et adapte le ton de la conclusion.</p></div>
+        <div><b>Ajouter une remarque</b> <span class="muted">(facultatif)</span><p class="hint">Un clic ajoute une phrase et adapte le ton de la conclusion. Vous pouvez aussi modifier directement le texte des propositions.</p></div>
         <div class="rem-chips" role="group" aria-label="Remarques rapides">${REMARKS.map((r) => html`<button type="button" class=${`rem-chip ${r.tone > 0 ? 'pos' : r.tone < 0 ? 'neg' : ''}`} aria-pressed=${remarks.includes(r.id)} onClick=${() => toggleRemark(r.id)}>${remarks.includes(r.id) ? '✓ ' : '+ '}${r.label}</button>`)}</div>
-        <div class="field"><label for="ap-note">Votre phrase à vous</label>
-          <input id="ap-note" class="input" value=${note} onInput=${(e) => save({ note: e.target.value })} placeholder=${`Ex. très bon exposé sur les volcans, a beaucoup aidé ses camarades…`} maxlength="200"/>
-          <span class="hint">Elle est ajoutée avant la conclusion. Pas besoin de soigner : « a été absent en octobre » devient « Il a été absent en octobre. »</span></div>
       </div>
 
       ${!st.g ? html`<div class="notice"><${Icon} name="info"/><div>Choisissez <b>Elle</b> ou <b>Il</b> ci-dessus pour que les accords soient justes.</div></div>`

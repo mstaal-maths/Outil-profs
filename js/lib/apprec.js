@@ -53,17 +53,6 @@ export const REMARKS = [
   { id: 'difficile', label: 'Période difficile', tone: 0, soft: true, text: ['Ce {période} a été difficile : nous restons à ses côtés.', 'Nous savons que ce {période} n’a pas été facile.', 'Un {période} compliqué : l’équipe reste à son écoute.'] },
   { id: 'orientation', label: 'Penser à l’orientation', tone: 0, text: ['{Il} doit réfléchir à son projet d’orientation.', 'Il est temps de construire son projet d’orientation.', 'Le projet d’orientation est à préciser.'] },
 ];
-/** Remarque libre du professeur : nettoyée (majuscule, point final) et insérée telle quelle. */
-const VERB_START = /^(a|as|est|était|sera|doit|devra|peut|pourra|sait|fait|montre|participe|travaille|aide|semble|reste|progresse|manque|oublie|parle|bavarde|rend|a été|s'|s’|se|n'|n’|ne|y|en)\b/i;
-export function cleanNote(t, st) {
-  let s = (t || '').replace(/\s+/g, ' ').trim();
-  if (!s) return '';
-  // Phrase sans sujet (« a été absent… ») : on ajoute « Il » ou « Elle ».
-  if (st && /^[a-zà-ÿ]/.test(s) && VERB_START.test(s)) s = (st.g === 'f' ? 'Elle ' : 'Il ') + s;
-  s = s.charAt(0).toUpperCase() + s.slice(1);
-  if (!/[.!?…]$/.test(s)) s += '.';
-  return s;
-}
 const SOFT_CLOSING = ['Courage pour la suite.', 'Nous l’accompagnerons pour la suite.', 'Bon courage pour la suite.'];
 
 const CLOSING = [
@@ -137,8 +126,6 @@ export function composeAll(st, lv, opts) {
     // Remarques du professeur, juste avant la conclusion.
     const rems = REMARKS.filter((x) => (opts.remarks || []).includes(x.id));
     for (const rm of rems) parts.push(pickS(rm.text));
-    const note = cleanNote(opts.note, st);
-    if (note) parts.push(note);
     // Conclusion selon l'ensemble (le travail compte double), ajustée par les remarques.
     const vals = ['travail', 'travail', 'attitude', 'oral', 'prog'].map((c) => lv[c]).filter((x) => x != null);
     if (opts.results != null) vals.push(opts.results);
