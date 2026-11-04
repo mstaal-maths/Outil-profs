@@ -41,6 +41,31 @@ const RESULTS = [
   ['Les résultats sont satisfaisants.', 'Les résultats sont bons.', 'Les résultats sont corrects.'],
   ['Les résultats sont excellents.', 'Les résultats sont très bons.', 'D’excellents résultats.'],
 ];
+// Remarques rapides : une phrase + un effet sur le ton de la conclusion.
+export const REMARKS = [
+  { id: 'absences', label: 'Nombreuses absences', tone: -0.3, soft: true, text: ['Les nombreuses absences ont freiné ses progrès.', 'De trop nombreuses absences pénalisent son travail.', 'Les absences répétées ont pesé sur ce {période}.'] },
+  { id: 'devoirs', label: 'Devoirs non rendus', tone: -0.4, text: ['Le travail à la maison n’est pas fait régulièrement.', 'Trop de devoirs ne sont pas rendus.', 'Les devoirs doivent être faits avec plus de régularité.'] },
+  { id: 'retards', label: 'Retards fréquents', tone: -0.3, text: ['Les retards sont trop fréquents.', '{Il} doit être plus ponctuel.', 'Les retards répétés doivent cesser.'] },
+  { id: 'materiel', label: 'Oublie son matériel', tone: -0.2, text: ['{Il} doit penser à apporter son matériel.', 'Le matériel est trop souvent oublié.', 'Attention aux oublis de matériel.'] },
+  { id: 'expose', label: 'Très bon exposé / projet', tone: 0.3, text: ['Très bon exposé ce {période} !', 'Son exposé a été très réussi.', '{Il} a présenté un excellent exposé.'] },
+  { id: 'delegue', label: 'Délégué(e) investi(e)', tone: 0.3, text: ['{Il} s’investit avec sérieux dans son rôle de {délégué|déléguée}.', 'Merci pour son engagement de {délégué|déléguée}.', '{Il} est {un délégué|une déléguée} {impliqué|impliquée}.'] },
+  { id: 'entraide', label: 'Aide ses camarades', tone: 0.2, text: ['{Il} aide volontiers ses camarades.', 'Son entraide avec la classe est appréciable.', '{Il} sait se montrer {solidaire|solidaire} avec ses camarades.'] },
+  { id: 'difficile', label: 'Période difficile', tone: 0, soft: true, text: ['Ce {période} a été difficile : nous restons à ses côtés.', 'Nous savons que ce {période} n’a pas été facile.', 'Un {période} compliqué : l’équipe reste à son écoute.'] },
+  { id: 'orientation', label: 'Penser à l’orientation', tone: 0, text: ['{Il} doit réfléchir à son projet d’orientation.', 'Il est temps de construire son projet d’orientation.', 'Le projet d’orientation est à préciser.'] },
+];
+/** Remarque libre du professeur : nettoyée (majuscule, point final) et insérée telle quelle. */
+const VERB_START = /^(a|as|est|était|sera|doit|devra|peut|pourra|sait|fait|montre|participe|travaille|aide|semble|reste|progresse|manque|oublie|parle|bavarde|rend|a été|s'|s’|se|n'|n’|ne|y|en)\b/i;
+export function cleanNote(t, st) {
+  let s = (t || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  // Phrase sans sujet (« a été absent… ») : on ajoute « Il » ou « Elle ».
+  if (st && /^[a-zà-ÿ]/.test(s) && VERB_START.test(s)) s = (st.g === 'f' ? 'Elle ' : 'Il ') + s;
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (!/[.!?…]$/.test(s)) s += '.';
+  return s;
+}
+const SOFT_CLOSING = ['Courage pour la suite.', 'Nous l’accompagnerons pour la suite.', 'Bon courage pour la suite.'];
+
 const CLOSING = [
   ['Il faut se ressaisir rapidement.', 'Un sursaut est indispensable.', '{Il} doit se mettre au travail sans attendre.'],
   ['Des efforts sont attendus pour la suite.', 'Il faut persévérer.', '{Il} peut mieux faire avec plus de régularité.'],
@@ -109,12 +134,19 @@ export function composeAll(st, lv, opts) {
         parts.push(r);
       }
     }
-    // Conclusion selon l'ensemble (le travail compte double).
+    // Remarques du professeur, juste avant la conclusion.
+    const rems = REMARKS.filter((x) => (opts.remarks || []).includes(x.id));
+    for (const rm of rems) parts.push(pickS(rm.text));
+    const note = cleanNote(opts.note, st);
+    if (note) parts.push(note);
+    // Conclusion selon l'ensemble (le travail compte double), ajustée par les remarques.
     const vals = ['travail', 'travail', 'attitude', 'oral', 'prog'].map((c) => lv[c]).filter((x) => x != null);
     if (opts.results != null) vals.push(opts.results);
-    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 1.5;
+    const avg = (vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 1.5) + rems.reduce((a, x) => a + x.tone, 0);
     const closeLv = avg < 0.9 ? 0 : avg < 1.75 ? 1 : avg < 2.6 ? 2 : 3;
-    parts.push(pickS(CLOSING[closeLv]));
+    // Situation difficile : jamais de conclusion sévère.
+    if (rems.some((x) => x.soft) && closeLv <= 1) parts.push(render(SOFT_CLOSING[(v + (opts.shift || 0)) % 3], st, ctx));
+    else parts.push(pickS(CLOSING[closeLv]));
     variants.push(parts.join(' ').replace(/\s+/g, ' ').trim());
   }
   return [...new Set(variants)];

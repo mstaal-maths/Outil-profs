@@ -415,3 +415,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   .crit-levels { grid-template-columns: repeat(2, 1fr); }
   .ap-done li { grid-template-columns: 1fr; }
 }
+.ap-remarks { padding: 16px 20px; display: grid; gap: 12px; }
+.rem-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.rem-chip { border: 1.5px solid var(--line); background: var(--card); color: var(--ink-2); border-radius: 99px; padding: 7px 13px; font-weight: 700; font-size: .9rem; cursor: pointer; transition: all .15s; }
+.rem-chip:hover { border-color: var(--line-strong); color: var(--ink); }
+.rem-chip[aria-pressed='true'] { background: var(--encre); border-color: var(--encre); color: var(--on-encre); }
+.rem-chip.pos[aria-pressed='true'] { background: var(--vert); border-color: var(--vert); color: #fff; }
+.rem-chip.neg[aria-pressed='true'] { background: #b86a0f; border-color: #b86a0f; color: #fff; }
