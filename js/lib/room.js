@@ -140,10 +140,11 @@ export function neighbors(seats) {
 
 /**
  * Placement automatique.
- * strategy : 'random' | 'alpha' | 'hetero' (binômes de niveaux différents) | 'mix' (alterner filles/garçons)
+ * strategy : 'random' | 'alpha' | 'hetero' (binômes de niveaux différents)
+ * mixGender : alterner filles et garçons (se combine avec le hasard ou les binômes de niveaux)
  * Respecte : places verrouillées, « ne pas mettre ensemble », « mettre ensemble », « devant ».
  */
-export function autoPlace({ items = [], tables, students, assign = {}, locked = [], strategy = 'random', constraints, levels = {}, fillFront = true }) {
+export function autoPlace({ items = [], tables, students, assign = {}, locked = [], strategy = 'random', constraints, levels = {}, fillFront = true, mixGender = false }) {
   const seats = seatsOf(tables);
   const nb = neighbors(seats);
   const lockedSet = new Set(locked.filter((sid) => assign[sid]));
@@ -186,13 +187,13 @@ export function autoPlace({ items = [], tables, students, assign = {}, locked = 
     for (const [x, y] of apart) c += isNb(x, y) * 400;
     for (const [x, y] of together) if (where[x] && where[y]) c += (1 - Math.min(1, isNb(x, y))) * 300;
     for (const id of front) if (where[id]) c += frontness[where[id]] * 260;
-    if (strategy === 'hetero' || strategy === 'mix') {
+    if (strategy === 'hetero' || mixGender) {
       for (const [seat, sid] of Object.entries(a)) for (const [o, w] of nb.get(seat)) {
         if (w < 0.6) continue;
         const other = a[o];
         if (!other || other < sid) continue;
         if (strategy === 'hetero') c += Math.max(0, 5 - Math.abs(lv(sid) - lv(other))) * 6 * w;
-        if (strategy === 'mix' && byId[sid]?.g && byId[sid].g === byId[other]?.g) c += 20 * w;
+        if (mixGender && byId[sid]?.g && byId[sid].g === byId[other]?.g) c += 20 * w;
       }
     }
     return c;

@@ -12,7 +12,6 @@ const STRATEGIES = [
   { id: 'random', label: 'Au hasard', hint: 'En respectant vos contraintes' },
   { id: 'alpha', label: 'Ordre alphabétique', hint: 'Pratique en début d’année' },
   { id: 'hetero', label: 'Binômes de niveaux mêlés', hint: 'D’après les notes' },
-  { id: 'mix', label: 'Alterner filles et garçons', hint: 'D’après l’accord il / elle' },
 ];
 
 export function PlanTool({ cls }) {
@@ -97,6 +96,7 @@ function PlanEditor({ cls, plan, onNewRoom }) {
   const [sel, setSel] = useState(null); // { kind: 'table' | 'item', id }
   const [strategy, setStrategy] = useState('random');
   const [fillFront, setFillFront] = useState(true);
+  const [mixGender, setMixGender] = useState(false);
   const [live, setLive] = useState(null); // copie locale pendant un déplacement
   const [shuffling, setShuffling] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -179,8 +179,8 @@ function PlanEditor({ cls, plan, onNewRoom }) {
     const levels = levelMap(cls, currentPeriod(cls));
     if (!seats.length) { toast('Ajoutez d’abord des tables dans « Aménager la salle ».', { icon: 'info' }); return; }
     if (strategy === 'hetero' && !hasGrades(cls)) { toast('Ajoutez des notes pour former des binômes de niveaux mêlés.', { icon: 'info' }); return; }
-    if (strategy === 'mix' && !cls.students.some((s) => s.g)) { toast('Indiquez « il » ou « elle » dans la liste des élèves pour alterner.', { icon: 'info' }); return; }
-    const next = autoPlace({ items, tables, students: cls.students, assign, locked: [...locked], strategy, constraints: cls.constraints, levels, fillFront });
+    if (mixGender && strategy !== 'alpha' && !cls.students.some((s) => s.g)) { toast('Indiquez « il » ou « elle » dans la liste des élèves pour alterner.', { icon: 'info' }); return; }
+    const next = autoPlace({ items, tables, students: cls.students, assign, locked: [...locked], strategy, constraints: cls.constraints, levels, fillFront, mixGender: mixGender && strategy !== 'alpha' });
     setShuffling(!prefersReducedMotion());
     save((p) => { p.assign = next; });
     setTimeout(() => setShuffling(false), 1400);
@@ -459,6 +459,8 @@ function PlanEditor({ cls, plan, onNewRoom }) {
         <h3>Placement automatique</h3>
         <div class="mode-list" role="radiogroup" aria-label="Méthode de placement">${STRATEGIES.map((s) => html`<button role="radio" aria-checked=${strategy === s.id} class="mode-opt compact" onClick=${() => setStrategy(s.id)}><span><b>${s.label}</b><small>${s.hint}</small></span></button>`)}</div>
         <label class="switch"><input type="checkbox" checked=${fillFront} onChange=${(e) => setFillFront(e.target.checked)}/>Remplir près du tableau d’abord</label>
+        <label class="switch" title=${strategy === 'alpha' ? 'Incompatible avec l’ordre alphabétique' : 'D’après l’accord il / elle de la liste des élèves'}><input type="checkbox" checked=${mixGender && strategy !== 'alpha'} disabled=${strategy === 'alpha'} onChange=${(e) => setMixGender(e.target.checked)}/>Alterner filles et garçons</label>
+        ${strategy === 'alpha' && html`<p class="hint" style="margin-top:-6px">L’alternance filles / garçons n’est pas possible avec l’ordre alphabétique.</p>`}
         <button class="btn btn-primary btn-lg" onClick=${auto}><${Icon} name="wand-sparkles"/>Placer automatiquement</button>
         <p class="hint">Les élèves épinglés <${Icon} name="pin" size=${13} style="display:inline;vertical-align:-2px"/> ne bougent pas.</p>
         <button class="btn btn-ghost" onClick=${clear} disabled=${!Object.keys(assign).length}><${Icon} name="rotate-ccw"/>Vider le plan</button>
