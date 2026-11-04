@@ -49,6 +49,7 @@ export function Dashboard() {
         <input id="dsearch" ref=${searchRef} class="input" type="search" placeholder="Rechercher une classe ou un élève…" value=${q} onInput=${(e) => setQ(e.target.value)} autocomplete="off"/></div>
       <div class="spacer"></div>
       <a class="btn" href="#/minuteur"><${Icon} name="timer"/>Minuteur</a>
+      <a class="btn" href="#/bruit"><${Icon} name="volume-2"/>Bruitomètre</a>
       <button class="btn btn-primary" onClick=${() => setCreating(true)}><${Icon} name="plus"/>Nouvelle classe</button>
     </div>`}
 

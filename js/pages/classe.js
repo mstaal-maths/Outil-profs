@@ -11,11 +11,12 @@ import { GroupsTool } from '../tools/groupes.js';
 import { TimerTool } from '../tools/minuteur.js';
 import { PlanTool } from '../tools/plan.js';
 import { AppreciationsTool } from '../tools/appreciations.js';
+import { NoiseTool } from '../tools/bruit.js';
 
 export function ClassPage({ cls, tab }) {
   useTitle(cls.name);
   const tools = TOOLS.filter((t) => t.phase === 1);
-  const toolMap = { tirage: DrawTool, groupes: GroupsTool, minuteur: TimerTool, plan: PlanTool, appreciations: AppreciationsTool };
+  const toolMap = { tirage: DrawTool, groupes: GroupsTool, minuteur: TimerTool, plan: PlanTool, appreciations: AppreciationsTool, bruit: NoiseTool };
   const Tool = toolMap[tab];
   const avg = classAverage(cls, currentPeriod(cls));
   return html`<main id="main" class=${`page ${Tool ? 'page-wide' : ''} route-enter`} tabindex="-1" key=${tab}>

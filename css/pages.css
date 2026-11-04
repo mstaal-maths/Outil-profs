@@ -470,7 +470,7 @@
 .name-cell > span:last-child { vertical-align: middle; }
 .gtbl .rank-col { width: 64px; text-align: center; font-weight: 700; color: var(--ink-2); border-left: 1px solid var(--line); }
 .gtbl thead .rank-col { font-size: .8rem; }
-.bento-card.big.b-appreciations { grid-column: 1 / -1; grid-template-columns: 1.2fr 1fr; }
+.bento-card.big.b-appreciations .aa-crit { grid-template-columns: repeat(2, 1fr); }
 .art-apprec { display: grid; gap: 14px; padding: 22px; width: 100%; }
 .aa-crit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .aa-crit span { display: grid; gap: 5px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: .74rem; grid-template-columns: repeat(4, 1fr); }
@@ -480,3 +480,13 @@
 .art-apprec p { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-family: var(--font-display); font-style: italic; font-size: 1.02rem; line-height: 1.5; box-shadow: var(--shadow-sm); transition: transform .5s var(--ease); }
 .bento-card:hover .art-apprec p { transform: translateY(-4px); }
 @media (max-width: 760px) { .bento-card.big.b-appreciations { grid-template-columns: 1fr; } .aa-crit { grid-template-columns: repeat(2, 1fr); } }
+
+.art-noise { display: grid; justify-items: center; gap: 6px; }
+.art-noise svg { width: 170px; height: auto; }
+.art-noise path { fill: none; stroke-width: 14; stroke-linecap: round; }
+.an-g { stroke: #2fa36b; } .an-o { stroke: #e3a21a; } .an-r { stroke: #d93b30; }
+.an-n { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; transform-origin: 80px 86px; transition: transform .8s var(--ease-spring); }
+.an-h { fill: var(--ink); }
+.bento-card:hover .an-n { transform: rotate(95deg); }
+.art-noise b { font-family: var(--font-display); font-size: 1.5rem; color: #1d7f55; transition: color .4s; }
+.bento-card:hover .art-noise b { color: var(--marge-text); }

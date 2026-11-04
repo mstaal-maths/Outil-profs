@@ -11,6 +11,7 @@ export const TOOLS = [
   { id: 'minuteur', name: 'Minuteur', icon: 'timer', desc: 'Lisible du fond de la classe, avec signal de fin.', phase: 1, key: '3' },
   { id: 'plan', name: 'Plan de classe', icon: 'armchair', desc: 'Dessinez votre vraie salle, placez vos élèves, imprimez.', phase: 1, key: '4' },
   { id: 'appreciations', name: 'Appréciations', icon: 'message-square-text', desc: 'Choisissez l’élève, 4 clics, et l’appréciation est rédigée.', phase: 1, key: '5' },
+  { id: 'bruit', name: 'Bruitomètre', icon: 'volume-2', desc: 'Le bruit de la classe, visible par tous : vert, orange, rouge.', phase: 1, key: '6' },
 ];
 
 // ---------- Indicateur d'enregistrement ----------
@@ -121,6 +122,7 @@ function buildCommands(s, path) {
     for (const st of c.students) cmds.push({ group: 'Élèves', label: `${st.first} ${st.last}`.trim(), icon: 'user-plus', hint: c.name, run: () => navigate(`/classes/${c.id}`), hidden: true });
   }
   if (s.mode !== 'none') cmds.push({ group: 'Actions', label: 'Nouvelle classe', icon: 'plus', run: () => navigate('/classes?nouvelle'), kw: 'créer ajouter' });
+  cmds.push({ group: 'Outils', label: 'Bruitomètre', icon: 'volume-2', run: () => navigate(cur ? `/classes/${cur.id}/bruit` : '/bruit'), kw: 'bruit son micro silence calme' });
   cmds.push({ group: 'Outils', label: 'Minuteur', icon: 'timer', run: () => navigate(cur ? `/classes/${cur.id}/minuteur` : '/minuteur'), kw: 'chrono compte à rebours' });
   cmds.push({ group: 'Affichage', label: 'Basculer clair / sombre', icon: 'moon', run: toggleTheme, hint: 'Maj+D', kw: 'thème nuit' });
   cmds.push({ group: 'Affichage', label: 'Mode projection', icon: 'presentation', run: () => toggleProjection(), hint: 'P', kw: 'vidéoprojecteur tableau' });
@@ -190,7 +192,7 @@ export function ShortcutsDialog() {
     ['P', 'Mode projection (très gros, très contrasté)'],
     ['F', 'Plein écran'],
     ['Maj D', 'Mode clair / sombre'],
-    ['1 – 5', 'Dans une classe : tirage, groupes, minuteur, plan, appréciations'],
+    ['1 – 6', 'Dans une classe : tirage, groupes, minuteur, plan, appréciations, bruitomètre'],
     ['Espace', 'Tirer au sort · démarrer / mettre en pause le minuteur'],
     ['R', 'Minuteur : remettre à zéro'],
     ['?', 'Afficher cette aide'],
@@ -211,7 +213,7 @@ export function installGlobalKeys(getPath) {
     else if (e.key === 'p' || e.key === 'P') { if (!e.shiftKey) { e.preventDefault(); const on = toggleProjection(); toast(on ? 'Mode projection activé — appuyez sur P pour revenir' : 'Mode projection désactivé', { icon: 'presentation', duration: 2200 }); } }
     else if (e.key === 'D' && e.shiftKey) { e.preventDefault(); toggleTheme(); }
     else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
-    else if (/^[1-5]$/.test(e.key)) {
+    else if (/^[1-6]$/.test(e.key)) {
       const m = getPath().match(/^\/classes\/([^/]+)/);
       if (m) { const t = TOOLS[Number(e.key) - 1]; navigate(`/classes/${m[1]}/${t.id}`); }
     }

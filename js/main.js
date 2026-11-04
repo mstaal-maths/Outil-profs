@@ -10,6 +10,7 @@ import { ClassPage } from './pages/classe.js';
 import { Account } from './pages/account.js';
 import { LegalPage } from './pages/legal.js';
 import { TimerTool } from './tools/minuteur.js';
+import { NoiseTool } from './tools/bruit.js';
 
 applyTheme();
 
@@ -60,6 +61,7 @@ function App() {
   if (path === '/' || path === '') { page = html`<${Landing}/>`; bare = true; }
   else if (parts[0] === 'connexion' || parts[0] === 'inscription' || parts[0] === 'mot-de-passe-oublie') { page = html`<${AuthPage} mode=${parts[0]}/>`; bare = true; }
   else if (parts[0] === 'reinitialiser') { page = html`<${ResetPage} code=${resetCode}/>`; bare = true; }
+  else if (parts[0] === 'bruit') { page = html`<${NoiseTool} standalone=${true}/>`; crumbs = [{ label: 'Bruitomètre' }]; }
   else if (parts[0] === 'minuteur') { page = html`<${TimerTool} standalone=${true}/>`; crumbs = [{ label: 'Minuteur' }]; }
   else if (['mentions-legales', 'confidentialite', 'cgu'].includes(parts[0])) { page = html`<${LegalPage} which=${parts[0]}/>`; }
   else if (parts[0] === 'classes' && !parts[1]) { page = needAuth() || html`<${Dashboard}/>`; crumbs = [{ label: 'Mes classes' }]; }
