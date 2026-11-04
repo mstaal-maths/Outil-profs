@@ -122,6 +122,7 @@ function buildCommands(s, path) {
     for (const st of c.students) cmds.push({ group: 'Élèves', label: `${st.first} ${st.last}`.trim(), icon: 'user-plus', hint: c.name, run: () => navigate(`/classes/${c.id}`), hidden: true });
   }
   if (s.mode !== 'none') cmds.push({ group: 'Actions', label: 'Nouvelle classe', icon: 'plus', run: () => navigate('/classes?nouvelle'), kw: 'créer ajouter' });
+  cmds.push({ group: 'Outils', label: 'Demander à une IA', icon: 'sparkles', run: () => navigate('/ia'), kw: 'prompt intelligence artificielle chatgpt mistral claude cours exercices évaluation dys' });
   cmds.push({ group: 'Outils', label: 'Bruitomètre', icon: 'volume-2', run: () => navigate(cur ? `/classes/${cur.id}/bruit` : '/bruit'), kw: 'bruit son micro silence calme' });
   cmds.push({ group: 'Outils', label: 'Minuteur', icon: 'timer', run: () => navigate(cur ? `/classes/${cur.id}/minuteur` : '/minuteur'), kw: 'chrono compte à rebours' });
   cmds.push({ group: 'Affichage', label: 'Basculer clair / sombre', icon: 'moon', run: toggleTheme, hint: 'Maj+D', kw: 'thème nuit' });

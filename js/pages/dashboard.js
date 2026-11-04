@@ -50,6 +50,7 @@ export function Dashboard() {
       <div class="spacer"></div>
       <a class="btn" href="#/minuteur"><${Icon} name="timer"/>Minuteur</a>
       <a class="btn" href="#/bruit"><${Icon} name="volume-2"/>Bruitomètre</a>
+      <a class="btn" href="#/ia"><${Icon} name="sparkles"/>Demander à une IA</a>
       <button class="btn btn-primary" onClick=${() => setCreating(true)}><${Icon} name="plus"/>Nouvelle classe</button>
     </div>`}
 

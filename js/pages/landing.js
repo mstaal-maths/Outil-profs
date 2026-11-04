@@ -214,6 +214,9 @@ export function Landing() {
             <div class="bento-text"><span class="bento-ico"><${Icon} name=${t.icon}/></span><h3>${t.name}</h3><p>${t.desc}</p>
             <span class="bento-try">Essayer<${Icon} name="arrow-right"/></span></div>
           </a>`)}
+          <a class="bento-card wide-ia reveal" href="#/ia"><span class="bento-ico"><${Icon} name="sparkles"/></span>
+            <div><h3>Demander à une IA</h3><p>Une banque de demandes toutes prêtes : leçon, évaluation, exercices en 3 niveaux, texte adapté DYS… Choisissez, remplissez 2 cases, et l’IA gratuite de votre choix prépare le support.</p></div>
+            <span class="bento-try">Découvrir<${Icon} name="arrow-right"/></span></a>
           ${later.map((t, i) => html`<div class="bento-card small reveal" style=${`--d:${i * 40}ms`}>
             <span class="bento-ico"><${Icon} name=${t.icon}/></span><div><h3>${t.name}</h3><p>${t.desc}</p></div><span class="badge badge-soon">Bientôt</span></div>`)}
         </div>

@@ -490,3 +490,36 @@
 .bento-card:hover .an-n { transform: rotate(95deg); }
 .art-noise b { font-family: var(--font-display); font-size: 1.5rem; color: #1d7f55; transition: color .4s; }
 .bento-card:hover .art-noise b { color: var(--marge-text); }
+
+/* ---------- Demander à une IA ---------- */
+.ia-how { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ia-how li { display: flex; gap: 12px; align-items: center; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.ia-how b { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--encre-soft); color: var(--encre); font-family: var(--font-display); font-size: 1.1rem; }
+.ia-bar { display: grid; gap: 12px; margin-bottom: 18px; }
+.ia-bar .dash-search { max-width: 460px; }
+.ia-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.ia-cats button { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink-2); border-radius: 99px; padding: 8px 14px; font-weight: 700; font-size: .92rem; cursor: pointer; }
+.ia-cats button svg { width: 16px; height: 16px; }
+.ia-cats button[aria-selected='true'] { background: var(--encre); border-color: var(--encre); color: var(--on-encre); }
+.ia-sec { margin-top: 22px; }
+.ia-sec .sec-title { display: flex; align-items: center; gap: 6px; }
+.ia-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ia-card { display: grid; gap: 4px; align-content: start; text-align: left; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); color: var(--ink); cursor: pointer; transition: transform .2s var(--ease), border-color .2s, box-shadow .2s; }
+.ia-card:hover { transform: translateY(-2px); border-color: var(--encre); box-shadow: var(--shadow); }
+.ia-card b { font-size: 1.05rem; }
+.ia-card span { color: var(--ink-3); font-size: .9rem; }
+.ia-card .ia-go { margin-top: 8px; color: var(--encre); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.ia-card .ia-go svg { width: 16px; height: 16px; }
+.ia-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.ia-fields .field.wide { grid-column: 1 / -1; }
+.ia-preview summary { cursor: pointer; font-weight: 700; color: var(--ink-2); }
+.ia-preview textarea { margin-top: 10px; font-size: .88rem; }
+.ia-foot { justify-content: flex-start; align-items: center; }
+.ia-foot-label { font-weight: 700; margin-right: 4px; }
+.ia-foot .btn small { font-weight: 500; opacity: .75; font-size: .78rem; }
+.bento-card.wide-ia { grid-column: 1 / -1; display: flex; gap: 18px; align-items: center; padding: 24px; color: var(--ink); text-decoration: none; background: linear-gradient(120deg, var(--card), var(--encre-softer)); }
+.bento-card.wide-ia:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.bento-card.wide-ia h3 { font-size: 1.5rem; }
+.bento-card.wide-ia p { color: var(--ink-2); max-width: 70ch; margin-top: 4px; }
+.bento-card.wide-ia > div { flex: 1; }
+@media (max-width: 760px) { .ia-how { grid-template-columns: 1fr; } .bento-card.wide-ia { flex-direction: column; align-items: flex-start; } }
