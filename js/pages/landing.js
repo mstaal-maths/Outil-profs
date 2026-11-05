@@ -152,6 +152,7 @@ function LandingNav() {
     <a class="brand" href="#/" aria-label="Trousse — accueil"><${Logo}/><span>trousse</span></a>
     <nav class="land-links hide-sm" aria-label="Sections">
       <a href="#/" onClick=${(e) => { e.preventDefault(); document.getElementById('outils')?.scrollIntoView({ behavior: 'smooth' }); }}>Les outils</a>
+      <a href="#/ia">Demander à une IA</a>
       <a href="#/" onClick=${(e) => { e.preventDefault(); document.getElementById('confiance')?.scrollIntoView({ behavior: 'smooth' }); }}>Vos données</a>
       <a href="#/" onClick=${(e) => { e.preventDefault(); document.getElementById('apropos')?.scrollIntoView({ behavior: 'smooth' }); }}>Qui suis-je ?</a>
     </nav>
@@ -209,14 +210,14 @@ export function Landing() {
           <h2>Ce qui vous prenait vingt minutes<br/><em>prend désormais vingt secondes.</em></h2>
         </div>
         <div class="bento">
+          <a class="bento-card wide-ia reveal" href="#/ia"><span class="bento-ico"><${Icon} name="sparkles"/></span>
+            <div><h3>Demander à une IA</h3><p>Joignez votre cours ou votre sujet à une IA gratuite et choisissez une demande toute prête : évaluation avec barème, exercices en 3 niveaux, version DYS, fiche de révision, corrigé…</p></div>
+            <span class="bento-try">Découvrir<${Icon} name="arrow-right"/></span></a>
           ${phase1.map((t, i) => html`<a class=${`bento-card big reveal b-${t.id}`} style=${`--d:${i * 80}ms`} href=${'#/demo/' + t.id}>
             <div class="bento-art" aria-hidden="true">${BentoArt[t.id]()}</div>
             <div class="bento-text"><span class="bento-ico"><${Icon} name=${t.icon}/></span><h3>${t.name}</h3><p>${t.desc}</p>
             <span class="bento-try">Essayer<${Icon} name="arrow-right"/></span></div>
           </a>`)}
-          <a class="bento-card wide-ia reveal" href="#/ia"><span class="bento-ico"><${Icon} name="sparkles"/></span>
-            <div><h3>Demander à une IA</h3><p>Une banque de demandes toutes prêtes : leçon, évaluation, exercices en 3 niveaux, texte adapté DYS… Choisissez, remplissez 2 cases, et l’IA gratuite de votre choix prépare le support.</p></div>
-            <span class="bento-try">Découvrir<${Icon} name="arrow-right"/></span></a>
           ${later.map((t, i) => html`<div class="bento-card small reveal" style=${`--d:${i * 40}ms`}>
             <span class="bento-ico"><${Icon} name=${t.icon}/></span><div><h3>${t.name}</h3><p>${t.desc}</p></div><span class="badge badge-soon">Bientôt</span></div>`)}
         </div>

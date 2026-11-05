@@ -43,6 +43,7 @@ export function Dashboard() {
         <p class="sub">${classes.length ? `${plural(classes.length, 'classe', 'classes')} · ${plural(total, 'élève', 'élèves')}` : 'Commencez par créer votre première classe.'}</p>
       </div>
     </div>
+    <a class="ia-banner" href="#/ia"><span class="dt-ico"><${Icon} name="sparkles"/></span><span><b>Demander à une IA</b><span>Joignez votre cours ou votre sujet : évaluation, exercices, version DYS, fiche de révision… en un clic.</span></span><${Icon} name="arrow-right"/></a>
     ${classes.length > 0 && html`<div class="dash-tools">
       <div class="dash-search"><${Icon} name="search"/>
         <label class="sr-only" for="dsearch">Rechercher une classe ou un élève</label>
@@ -50,7 +51,6 @@ export function Dashboard() {
       <div class="spacer"></div>
       <a class="btn" href="#/minuteur"><${Icon} name="timer"/>Minuteur</a>
       <a class="btn" href="#/bruit"><${Icon} name="volume-2"/>Bruitomètre</a>
-      <a class="btn" href="#/ia"><${Icon} name="sparkles"/>Demander à une IA</a>
       <button class="btn btn-primary" onClick=${() => setCreating(true)}><${Icon} name="plus"/>Nouvelle classe</button>
     </div>`}
 

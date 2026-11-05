@@ -523,3 +523,23 @@
 .bento-card.wide-ia p { color: var(--ink-2); max-width: 70ch; margin-top: 4px; }
 .bento-card.wide-ia > div { flex: 1; }
 @media (max-width: 760px) { .ia-how { grid-template-columns: 1fr; } .bento-card.wide-ia { flex-direction: column; align-items: flex-start; } }
+.ia-top { --b-bg: var(--encre-soft); --b-fg: var(--encre); --b-bd: transparent; box-shadow: none; }
+.ia-top:hover { background: var(--encre); color: var(--on-encre); }
+.ia-banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; margin-bottom: 26px; border-radius: var(--r-lg); background: linear-gradient(120deg, var(--encre-soft), var(--surligneur-soft)); border: 1px solid var(--encre-soft); color: var(--ink); text-decoration: none; transition: transform .2s var(--ease), box-shadow .2s; }
+.ia-banner:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow); }
+.ia-banner > span:nth-child(2) { flex: 1; display: grid; gap: 2px; }
+.ia-banner b { font-size: 1.1rem; }
+.ia-banner > span span { color: var(--ink-2); font-size: .94rem; }
+.ia-banner > svg { width: 22px; height: 22px; color: var(--encre); }
+.ia-head { display: flex; gap: 16px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; }
+.ia-head h1 { font-size: clamp(1.9rem, 4vw, 2.7rem); }
+.ia-head .sub { color: var(--ink-2); margin-top: 6px; }
+.ia-search { flex: 0 1 340px; }
+.ia-cats { margin-bottom: 16px; }
+.ia-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ia-steps li { display: flex; gap: 12px; align-items: flex-start; font-size: 1.02rem; }
+.ia-steps b { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--encre-soft); color: var(--encre); font-family: var(--font-display); }
+.ia-steps li.ok b { background: var(--vert); color: #fff; }
+.ia-sites { display: flex; gap: 8px; flex-wrap: wrap; }
+.ia-sites .btn small { font-weight: 500; opacity: .75; font-size: .78rem; }
+.ia-preview p { margin: 10px 0; padding: 12px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; font-size: .9rem; color: var(--ink-2); white-space: pre-line; }

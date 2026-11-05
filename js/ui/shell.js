@@ -59,6 +59,7 @@ export function Topbar({ crumbs = [] }) {
     ${s.mode !== 'none' && html`<${SaveStatus}/>`}
     <button class="search-trigger" onClick=${() => openPalette()} aria-label="Rechercher un outil ou une classe (Ctrl+K)">
       <${Icon} name="search"/><span class="label-text">Rechercher…</span><span class="kbd">${navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} K</span></button>
+    <a class="btn btn-sm ia-top" href="#/ia" title="Demander à une IA"><${Icon} name="sparkles"/><span class="hide-sm">Demander à une IA</span></a>
     <button class=${`btn btn-ghost btn-icon hide-sm ${proj ? 'is-on' : ''}`} onClick=${() => toggleProjection()} aria-pressed=${proj} title="Mode projection (P)" aria-label="Mode projection"><${Icon} name="presentation"/></button>
     <button class="btn btn-ghost btn-icon" onClick=${toggleTheme} title=${theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'} aria-label=${theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}>
       <span class="theme-ico" data-t=${theme}><${Icon} name=${theme === 'dark' ? 'sun' : 'moon'}/></span></button>
